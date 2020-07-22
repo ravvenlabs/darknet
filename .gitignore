@@ -80,3 +80,4 @@ build/darknet/x64/data/VOCdevkit/*
 *.74
 *.weights
 *.mp4
+!build/darknet/x64/mixed_debug_darknet
