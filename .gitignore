@@ -19,7 +19,13 @@ convnet/
 decaf/
 submission/
 cfg/
-build/darknet/*
+# edited
+# build/darknet/*
+build/darknet/*.sln
+build/darknet/*.vcxproj
+build/darknet/*.vcxproj.user
+build/darknet/*.cs
+
 build_*/
 !build/darknet/YoloWrapper.cs
 .fuse*
@@ -33,7 +39,9 @@ build/detect_cuda_compute_capabilities.cu
 build/.ninja_deps
 build/.ninja_log
 build/Makefile
+
 build/darknet/x64/data/VOCdevkit/*
+
 # OS Generated #
 .DS_Store*
 ehthumbs.db
