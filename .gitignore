@@ -1,26 +1,18 @@
 *.o
 *.a
 *.dSYM
-*.csv
-*.out
-*.png
-*.so
-*.exe
-*.dll
-*.lib
 *.dylib
 mnist/
-data/
+
 caffe/
 grasp/
-images/
 opencv/
 convnet/
 decaf/
 submission/
-cfg/
+
 # edited
-# build/darknet/*
+
 build/darknet/*.sln
 build/darknet/*.vcxproj
 build/darknet/*.vcxproj.user
