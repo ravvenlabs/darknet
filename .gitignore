@@ -33,7 +33,7 @@ build/detect_cuda_compute_capabilities.cu
 build/.ninja_deps
 build/.ninja_log
 build/Makefile
-
+build/darknet/x64/data/VOCdevkit/*
 # OS Generated #
 .DS_Store*
 ehthumbs.db

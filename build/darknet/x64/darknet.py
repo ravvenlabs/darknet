@@ -31,6 +31,7 @@ from ctypes import *
 import math
 import random
 import os
+import pdb
 
 def sample(probs):
     s = sum(probs)
@@ -61,11 +62,7 @@ class DETECTION(Structure):
                 ("objectness", c_float),
                 ("sort_class", c_int),
                 ("uc", POINTER(c_float)),
-                ("points", c_int),
-                ("embeddings", POINTER(c_float)),
-                ("embedding_size", c_int),
-                ("sim", c_float),
-                ("track_id", c_int)]
+                ("points", c_int)]
 
 class DETNUMPAIR(Structure):
     _fields_ = [("num", c_int),
@@ -86,14 +83,17 @@ class METADATA(Structure):
 #lib = CDLL("/home/pjreddie/documents/darknet/libdarknet.so", RTLD_GLOBAL)
 #lib = CDLL("libdarknet.so", RTLD_GLOBAL)
 hasGPU = True
+
 if os.name == "nt":
     cwd = os.path.dirname(__file__)
     os.environ['PATH'] = cwd + ';' + os.environ['PATH']
+    #cwd=cwd.replace('\\python_darknet_wrap','')
     winGPUdll = os.path.join(cwd, "yolo_cpp_dll.dll")
-    winNoGPUdll = os.path.join(cwd, "yolo_cpp_dll_nogpu.dll")
+    winNoGPUdll = os.path.join(cwd, "yolo_cpp_dll_no_gpu.dll")
     envKeys = list()
     for k, v in os.environ.items():
         envKeys.append(k)
+    #pdb.set_trace()
     try:
         try:
             tmp = os.environ["FORCE_CPU"].lower()
@@ -109,6 +109,7 @@ if os.name == "nt":
             try:
                 global DARKNET_FORCE_CPU
                 if DARKNET_FORCE_CPU:
+                    #pdb.set_trace()
                     raise ValueError("ForceCPU")
             except NameError:
                 pass
@@ -117,6 +118,7 @@ if os.name == "nt":
         if not os.path.exists(winGPUdll):
             raise ValueError("NoDLL")
         lib = CDLL(winGPUdll, RTLD_GLOBAL)
+
     except (KeyError, ValueError):
         hasGPU = False
         if os.path.exists(winNoGPUdll):
@@ -128,7 +130,7 @@ if os.name == "nt":
             lib = CDLL(winGPUdll, RTLD_GLOBAL)
             print("Environment variables indicated a CPU run, but we didn't find `"+winNoGPUdll+"`. Trying a GPU run anyway.")
 else:
-    lib = CDLL("./libdarknet.so", RTLD_GLOBAL)
+    lib = CDLL("../libdarknet.so", RTLD_GLOBAL)
 lib.network_width.argtypes = [c_void_p]
 lib.network_width.restype = c_int
 lib.network_height.argtypes = [c_void_p]
@@ -316,8 +318,8 @@ def detect_image(net, meta, im, thresh=.5, hier_thresh=.5, nms=.45, debug= False
 netMain = None
 metaMain = None
 altNames = None
-
-def performDetect(imagePath="data/dog.jpg", thresh= 0.25, configPath = "./cfg/yolov4.cfg", weightPath = "yolov4.weights", metaPath= "./cfg/coco.data", showImage= True, makeImageOnly = False, initOnly= False):
+#def performDetect(imagePath="data/dog.jpg", thresh= 0.25, configPath = "./cfg/yolov4.cfg", weightPath = "yolov4.weights", metaPath= "./cfg/coco.data", showImage= True, makeImageOnly = False, initOnly= False):
+def performDetect(imagePath="./data/dog.jpg", thresh= 0.15, configPath = "./cfg/yolov2-tiny.cfg", weightPath = "./weights/yolov2-tiny.weights", metaPath= "./cfg/coco.data", showImage= True, makeImageOnly = False, initOnly= False):
     """
     Convenience function to handle the detection and returns of objects.
 
@@ -460,12 +462,12 @@ def performDetect(imagePath="data/dog.jpg", thresh= 0.25, configPath = "./cfg/yo
             print("Unable to show image: "+str(e))
     return detections
 
-def performBatchDetect(thresh= 0.25, configPath = "./cfg/yolov4.cfg", weightPath = "yolov4.weights", metaPath= "./cfg/coco.data", hier_thresh=.5, nms=.45, batch_size=3):
+def performBatchDetect(thresh= 0.25, configPath = "./cfg/yolov4.cfg", weightPath = "./yolov4.weights", metaPath= "./cfg/coco.data", hier_thresh=.5, nms=.45, batch_size=3):
     import cv2
     import numpy as np
     # NB! Image sizes should be the same
     # You can change the images, yet, be sure that they have the same width and height
-    img_samples = ['data/person.jpg', 'data/person.jpg', 'data/person.jpg']
+    img_samples = ['./data/person.jpg', './data/person.jpg', './data/person.jpg']
     image_list = [cv2.imread(k) for k in img_samples]
 
     net = load_net_custom(configPath.encode('utf-8'), weightPath.encode('utf-8'), 0, batch_size)
@@ -526,6 +528,8 @@ def performBatchDetect(thresh= 0.25, configPath = "./cfg/yolov4.cfg", weightPath
     return batch_boxes, batch_scores, batch_classes    
 
 if __name__ == "__main__":
+    pdb.set_trace()
+
     print(performDetect())
     #Uncomment the following line to see batch inference working 
     #print(performBatchDetect())
