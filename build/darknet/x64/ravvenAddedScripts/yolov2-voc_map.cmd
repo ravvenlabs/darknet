@@ -1,0 +1,1 @@
+..\darknet.exe detector map ../cfg/brian_voc.data ../cfg/yolov2-tiny-voc.cfg ../weights/yolov2-tiny-voc.weights

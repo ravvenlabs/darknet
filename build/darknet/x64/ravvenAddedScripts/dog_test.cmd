@@ -1,0 +1,1 @@
+..\darknet.exe detector test ../cfg/coco.data ../cfg/yolov2-tiny.cfg ../weights/yolov2-tiny.weights ../data/dog.jpg

@@ -2,6 +2,9 @@
 *.a
 *.dSYM
 *.dylib
+*.obj
+*.tlog
+
 mnist/
 
 caffe/
@@ -21,10 +24,9 @@ build/darknet/*.cs
 build_*/
 !build/darknet/YoloWrapper.cs
 .fuse*
-*.weights
+
 build/*.cmake
 build/*.ninja
-build/*.txt
 build/*.json
 build/CMakeFiles/
 build/detect_cuda_compute_capabilities.cu
@@ -32,7 +34,7 @@ build/.ninja_deps
 build/.ninja_log
 build/Makefile
 
-build/darknet/x64/data/VOCdevkit/*
+
 
 # OS Generated #
 .DS_Store*
@@ -54,4 +56,27 @@ share/
 include/darknet/
 uselib
 uselib_track
-darknet
+
+# add back
+
+!build/darknet/x64/*
+!build/darknet/x64/ravvenAddedScripts/
+!build/darknet/x64/data/
+!build/darknet/x64/scripts/
+!build/darknet/x64/backup/
+!build/darknet/x64/weights/
+!build/darknet/x64/pretrained/
+!build/darknet/x64/cfg/
+!build/darknet/x64/cmds/
+
+build/darknet/x64/__pycache__/
+build/darknet/x64/DLL_Release/
+build/darknet/x64/DLL_Debug/
+build/darknet/x64/nogpu_Debug/
+build/darknet/x64/Debug/
+build/darknet/x64/Release/
+build/darknet/Debug/
+build/darknet/x64/data/VOCdevkit/*
+*.74
+*.weights
+*.mp4
