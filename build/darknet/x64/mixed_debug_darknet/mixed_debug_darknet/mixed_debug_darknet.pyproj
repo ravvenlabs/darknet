@@ -4,14 +4,14 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>bc75f98c-af52-44cf-8304-46e12178c7bd</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>darknet.py</StartupFile>
+    <StartupFile>darknet_video.py</StartupFile>
     <SearchPath>..\..\..\x64</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>mixed_debug_darknet</Name>
     <RootNamespace>mixed_debug_darknet</RootNamespace>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <InterpreterId>Global|VisualStudio|Python37_64</InterpreterId>
+    <InterpreterId>CondaEnv|CondaEnv|Anaconda3</InterpreterId>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
   </PropertyGroup>
@@ -28,7 +28,7 @@
     <Compile Include="darknet_video.py" />
   </ItemGroup>
   <ItemGroup>
-    <InterpreterReference Include="Global|VisualStudio|Python37_64" />
+    <InterpreterReference Include="CondaEnv|CondaEnv|Anaconda3" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
