@@ -1,0 +1,1 @@
+pull down the weights file yolo2v-tiny.weights from http://u.pc.cd/BHX and load it into here.

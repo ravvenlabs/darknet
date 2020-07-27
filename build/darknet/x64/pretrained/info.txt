@@ -1,0 +1,1 @@
+pull down the weights file darknet53.weights from http://u.pc.cd/7wM7 and load it into here.
