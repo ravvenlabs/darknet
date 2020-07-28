@@ -5,7 +5,25 @@ import os
 import cv2
 import numpy as np
 import time
-import darknet
+#import darknet
+
+def FixVSPath():
+
+    subFolder = (os.getcwd()).split("\\")[-1]
+    print(os.getcwd())
+    if(not subFolder == "x64"):
+
+        print("VS detected subdir change needed")
+        print(os.getcwd())
+        newTarg = os.path.join(os.getcwd(), "build" , "darknet", "x64")
+        os.chdir(newTarg)
+        print(os.getcwd())
+        subFolder = (os.getcwd()).split("\\")[-1]
+        print("Done")
+
+    else:
+        print("No subdir change needed")
+
 
 def convertBack(x, y, w, h):
     xmin = int(round(x - (w / 2)))
@@ -113,4 +131,6 @@ def YOLO():
     out.release()
 
 if __name__ == "__main__":
+    FixVSPath()
+    import darknet
     YOLO()

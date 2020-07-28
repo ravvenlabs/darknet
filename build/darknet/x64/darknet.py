@@ -33,6 +33,25 @@ import random
 import os
 import pdb
 
+
+def FixVSPath():
+
+    subFolder = (os.getcwd()).split("\\")[-1]
+    print(os.getcwd())
+    if(not subFolder == "x64"):
+
+        print("VS detected subdir change needed")
+        print(os.getcwd())
+        newTarg = os.path.join(os.getcwd(), "build" , "darknet", "x64")
+        os.chdir(newTarg)
+        print(os.getcwd())
+        subFolder = (os.getcwd()).split("\\")[-1]
+        print("Done")
+
+    else:
+        print("No subdir change needed")
+
+
 def sample(probs):
     s = sum(probs)
     probs = [a/s for a in probs]
@@ -529,7 +548,7 @@ def performBatchDetect(thresh= 0.25, configPath = "./cfg/yolov4.cfg", weightPath
 
 if __name__ == "__main__":
     #pdb.set_trace()
-
+    FixVSPath()
     print(performDetect())
     #Uncomment the following line to see batch inference working 
     #print(performBatchDetect())
