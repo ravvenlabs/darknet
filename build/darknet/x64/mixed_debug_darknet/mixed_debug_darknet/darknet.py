@@ -94,7 +94,7 @@ if os.name == "nt":
     
 
     #debugging in visual studio    
-    os.chdir("..\\..\\")
+    os.chdir("..\\..")
     winGPUdll = "yolo_cpp_dll.dll"
     winNoGPUdll = "yolo_cpp_dll_no_gpu.dll"
     
