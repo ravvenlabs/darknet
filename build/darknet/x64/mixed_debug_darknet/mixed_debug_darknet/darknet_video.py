@@ -81,7 +81,7 @@ def YOLO():
             pass
     #cap = cv2.VideoCapture(0)
 #    cap = cv2.VideoCapture("test.mp4")
-    cap = cv2.VideoCapture("C:/opencv-cuda/data/test.mp4")
+    cap = cv2.VideoCapture("./data/test.mp4")
     cap.set(3, 1280)
     cap.set(4, 720)
     out = cv2.VideoWriter(
