@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>bc75f98c-af52-44cf-8304-46e12178c7bd</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>darknet_video.py</StartupFile>
+    <StartupFile>darknet.py</StartupFile>
     <SearchPath>..\..\..\x64</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
