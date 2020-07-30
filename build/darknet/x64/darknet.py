@@ -275,6 +275,7 @@ def detect(net, meta, image, thresh=.5, hier_thresh=.5, nms=.45, debug= False):
     Performs the meat of the detection
     """
     #pylint: disable= C0321
+    #pdb.set_trace()
     im = load_image(image, 0, 0)
     if debug: print("Loaded image")
     ret = detect_image(net, meta, im, thresh, hier_thresh, nms, debug)
@@ -310,9 +311,11 @@ def detect_image(net, meta, im, thresh=.5, hier_thresh=.5, nms=.45, debug= False
     res = []
     if debug: print("about to range")
     for j in range(num):
+        #pdb.set_trace()
         if debug: print("Ranging on "+str(j)+" of "+str(num))
         if debug: print("Classes: "+str(meta), meta.classes, meta.names)
         for i in range(meta.classes):
+            #pdb.set_trace()
             if debug: print("Class-ranging on "+str(i)+" of "+str(meta.classes)+"= "+str(dets[j].prob[i]))
             if dets[j].prob[i] > 0:
                 b = dets[j].bbox
