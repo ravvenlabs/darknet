@@ -9,7 +9,8 @@ path = "./data/test.mp4"
 #path = "./data/aerial.mp4"
 
 cap = cv.VideoCapture(path)
-
+cap.set(3, 1280)
+cap.set(4, 720)
 if(cap.isOpened()==False):
     print("Error opening")
 
@@ -37,6 +38,9 @@ loops = 1
 
 
 ret, old_frame = cap.read()
+
+old_frame = cv.resize(old_frame, (416, 416), interpolation=cv.INTER_LINEAR)
+
 old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
 p0 = cv.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 
@@ -63,6 +67,8 @@ while(cap.isOpened()):
 
     ret, frame = cap.read()
     
+    frame = cv.resize(frame, (416, 416), interpolation=cv.INTER_LINEAR)
+    
     frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     
     # calculate optical flow
@@ -82,7 +88,7 @@ while(cap.isOpened()):
             mask = cv.line(mask, (a,b),(c,d), color[i].tolist(), 2)
             frame = cv.circle(frame,(a,b),5,color[i].tolist(),-1)
         img = cv.add(frame,mask)
-    
+        #print(i)
     
     if(ret==True):
         cv.imshow('Frame',img)
