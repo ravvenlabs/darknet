@@ -15,18 +15,34 @@ path = "./data/test.mp4"
 
 ####################################################################
 
+#Frames till next yolo call
 DET_SKIP = 20
+
+#Rectangles for box movement and crosshairs on MV in said rectangle (And print loactions of each)
 DEBUG_OBJECTS = False
 
+#MV inside of rectangle buffer for outside of rectangle
+MV_RECT_BUFFER = 5
+
+#Yolo accuracy required to make a bbox
 YOLO_DET_THRESH = .25
+
+#put circlews on most recent O.F. point
 CV_CIRCLE_ON = False
+
 #more objects detected and tracked
 DetectionPoints = 150
+
+#draw yolo bboxes (every frame green)
+drawYOLO = False
+
 # params for ShiTomasi corner detection
 feature_params = dict( maxCorners = DetectionPoints,
                        qualityLevel = 0.1,
                        minDistance = 7,
                        blockSize = 7 )
+                       
+                       
 # Parameters for lucas kanade optical flow
 lk_params = dict( winSize  = (15 ,15),
                   maxLevel = 3,
@@ -155,9 +171,9 @@ def AssocDetections(detections):
         
     return MV_and_Detections
 
-def InsideRect(a,b,x,y,w,h):
+def InsideRect(a,b,x,y,w,h, buffer):
     
-    return (a>=x and a<=x+w and b>=y and b<=y+h)
+    return (a>=(x-buffer) and a<=(x+w+buffer) and b>=(y-buffer) and b<=(y+h+buffer))
     
     
 def UpdateMvBoxes(detections, newFramePoints, oldFramePoints, dbgFrame=None, mask = None):
@@ -178,6 +194,8 @@ def UpdateMvBoxes(detections, newFramePoints, oldFramePoints, dbgFrame=None, mas
         
         #added = False
         
+        total = 0
+        
         for i,(new,old) in enumerate(zip(newFramePoints, oldFramePoints)):
                 a,b = new.ravel()
                 c,d = old.ravel()
@@ -191,9 +209,9 @@ def UpdateMvBoxes(detections, newFramePoints, oldFramePoints, dbgFrame=None, mas
         
                 #if old point inside rectangle
                 
-                if(InsideRect(a,b,x,y,w,h)):
+                if(InsideRect(a,b,x,y,w,h, MV_RECT_BUFFER)):
                 
-                    
+                    total+=1
                 
                     #mask = cv2.line(mask, (int(0),int(y)),(int(1000),int(y+h)), (0,255,150), 5)
                     #mask = cv2.line(mask, (int(x),int(0)),(int(x+w),int(1000)), (0,255,150), 5)
@@ -233,7 +251,10 @@ def UpdateMvBoxes(detections, newFramePoints, oldFramePoints, dbgFrame=None, mas
         #        pdb.set_trace()
                 #cv2.imshow('Frame', dbgFrame)
     
-        
+        if(total>0):
+    
+            DistY = DistY / total
+            DistY = DistY / total
                 
         if(DistX != 0 or DistY != 0):
             #pdb.set_trace()
@@ -363,7 +384,7 @@ def YOLO():
     while cap.isOpened():
         addedToFrame = False
         loops=loops+1
-        time.sleep(0.05)
+        #time.sleep(0.05)
         
         #every 10 start with new mask
         if(loops%DET_SKIP==0):
@@ -443,7 +464,10 @@ def YOLO():
         
         COLOR = (0,255,0)
         
-        image = cvDrawBoxes(detections, frame_resized,COLOR)
+        if(drawYOLO):
+            image = cvDrawBoxes(detections, frame_resized,COLOR)
+        
+        
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
 ###################################################################################################################
