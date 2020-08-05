@@ -12,7 +12,6 @@ import pdb
 #openCV static info
 path = "./data/test.mp4"
 
-
 ####################################################################
 
 #Frames till next optical flow point refresh
@@ -23,10 +22,11 @@ ALWAYS_REDRAW = True
 #frames till next yolo call 
 YOLO_DET_SKIP = 15
 
-#Rectangles for box movement and crosshairs on MV in said rectangle (And print loactions of each)
+
+#Rectangles for box movement and crosshairs on MV in said rectangle (And print locations of each)
 DEBUG_OBJECTS = False
 
-#MV inside of rectangle buffer for outside of rectangle
+#MV inside of rectangle buffer for outside of rectangle [units of pixels]
 MV_RECT_BUFFER_VERT = 10
 MV_RECT_BUFFER_HORZ = 0
 
@@ -34,7 +34,7 @@ MV_RECT_BUFFER_HORZ = 0
 YOLO_DET_THRESH = .30
 
 #Insert a delay from one frame to the next
-SLOW_MODE =False
+SLOW_MODE =True
 #with VOC
 #YOLO_DET_THRESH = .10
 
@@ -52,8 +52,7 @@ feature_params = dict( maxCorners = DetectionPoints,
                        qualityLevel = 0.1,
                        minDistance = 7,
                        blockSize = 7 )
-                       
-                       
+                                 
 # Parameters for lucas kanade optical flow
 lk_params = dict( winSize  = (15 ,15),
                   maxLevel = 3,
