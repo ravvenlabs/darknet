@@ -15,23 +15,35 @@ path = "./data/test.mp4"
 
 ####################################################################
 
-#Frames till next yolo call
-DET_SKIP = 20
+#Frames till next optical flow point refresh
+OF_DET_SKIP = 6
+
+#frames till next yolo call 
+YOLO_DET_SKIP = 15
+
+
 
 #Rectangles for box movement and crosshairs on MV in said rectangle (And print loactions of each)
 DEBUG_OBJECTS = False
 
 #MV inside of rectangle buffer for outside of rectangle
-MV_RECT_BUFFER = 5
+MV_RECT_BUFFER_VERT = 10
+MV_RECT_BUFFER_HORZ = 0
+
 
 #Yolo accuracy required to make a bbox
-YOLO_DET_THRESH = .25
+YOLO_DET_THRESH = .33
+
+#Insert a delay from one frame to the next
+SLOW_MODE =False
+#with VOC
+#YOLO_DET_THRESH = .10
 
 #put circlews on most recent O.F. point
 CV_CIRCLE_ON = False
 
 #more objects detected and tracked
-DetectionPoints = 150
+DetectionPoints = 200
 
 #draw yolo bboxes (every frame green)
 drawYOLO = False
@@ -171,9 +183,9 @@ def AssocDetections(detections):
         
     return MV_and_Detections
 
-def InsideRect(a,b,x,y,w,h, buffer):
+def InsideRect(a,b,x,y,w,h, bufferV,bufferH):
     
-    return (a>=(x-buffer) and a<=(x+w+buffer) and b>=(y-buffer) and b<=(y+h+buffer))
+    return (a>=(x-bufferH) and a<=(x+w+bufferH) and b>=(y-bufferV) and b<=(y+h+bufferV))
     
     
 def UpdateMvBoxes(detections, newFramePoints, oldFramePoints, dbgFrame=None, mask = None):
@@ -209,7 +221,7 @@ def UpdateMvBoxes(detections, newFramePoints, oldFramePoints, dbgFrame=None, mas
         
                 #if old point inside rectangle
                 
-                if(InsideRect(a,b,x,y,w,h, MV_RECT_BUFFER)):
+                if(InsideRect(a,b,x,y,w,h, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)):
                 
                     total+=1
                 
@@ -300,9 +312,25 @@ def MoveDetection(detection, dx,dy):
 def YOLO():
 
     global metaMain, netMain, altNames
+    #configPath = "./cfg/yolov4.cfg"
+    #weightPath = "./weights/yolov4.weights"
+    #metaPath = "./cfg/coco.data"
+    
+    #configPath = "./cfg/yolov3.cfg"
+    #weightPath = "./weights/yolov3.weights"
+    #metaPath = "./cfg/coco.data"
+    
     configPath = "./cfg/yolov2-tiny.cfg"
     weightPath = "./weights/yolov2-tiny.weights"
     metaPath = "./cfg/coco.data"
+
+
+    #-->VOC is horrible currently
+    #configPath = "./cfg/yolov2-tiny-voc.cfg"
+    #weightPath = "./weights/yolov2-tiny-voc.weights"
+    #metaPath = "./cfg/voc.data"
+    
+    
     if not os.path.exists(configPath):
         raise ValueError("Invalid config path `" +
                          os.path.abspath(configPath)+"`")
@@ -378,16 +406,17 @@ def YOLO():
     frame_read= None
     MVBoxes = None
     dbgFrame = None
-    
+    detections = None
     maxx=0
     maxy=0
     while cap.isOpened():
         addedToFrame = False
         loops=loops+1
-        #time.sleep(0.05)
+        if(SLOW_MODE):
+            time.sleep(0.05)
         
         #every 10 start with new mask
-        if(loops%DET_SKIP==0):
+        if(loops%OF_DET_SKIP==0):
             #Every 10 frames readjust
             # Take first frame and find corners in it
             ret, old_frame = ret, frame_read
@@ -458,8 +487,10 @@ def YOLO():
                                    interpolation=cv2.INTER_LINEAR)
 
         darknet.copy_image_from_bytes(darknet_image,frame_resized.tobytes())
-                                                                        #IT WAS: thresh=0.25
-        detections = darknet.detect_image(netMain, metaMain, darknet_image, thresh=YOLO_DET_THRESH)
+            
+        if(loops%YOLO_DET_SKIP==0 or detections is None):
+                                                            #IT WAS: thresh=0.25
+            detections = darknet.detect_image(netMain, metaMain, darknet_image, thresh=YOLO_DET_THRESH)
         #image = cvDrawOneBox(detections, frame_resized)
         
         COLOR = (0,255,0)
@@ -475,7 +506,7 @@ def YOLO():
         #(id, detection, [])
         
         
-        if(loops%DET_SKIP==0 or MVBoxes is None):
+        if(loops%YOLO_DET_SKIP==0 or MVBoxes is None):
             MVBoxes = AssocDetections(detections)
             #sys.stdout.write("MVBoxes assigned\n")
         
@@ -521,6 +552,23 @@ def YOLO():
             #pdb.set_trace()
             pass
         cv2.imshow('Frame', image)
+        
+        
+        
+##################################################################################################################################
+
+        #Do map testing down here
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+##################################################################################################################################        
         
         old_gray = frame_gray.copy()
         p0 = good_new.reshape(-1,1,2)
