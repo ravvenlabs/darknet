@@ -12,30 +12,26 @@ import pdb
 #openCV static info
 path = "./data/test.mp4"
 
-
 ####################################################################
 
 #Frames till next optical flow point refresh
-OF_DET_SKIP = 6
+OF_DET_SKIP = 3
 
 #frames till next yolo call 
 YOLO_DET_SKIP = 15
 
-
-
-#Rectangles for box movement and crosshairs on MV in said rectangle (And print loactions of each)
+#Rectangles for box movement and crosshairs on MV in said rectangle (And print locations of each)
 DEBUG_OBJECTS = False
 
-#MV inside of rectangle buffer for outside of rectangle
+#MV inside of rectangle buffer for outside of rectangle [units of pixels]
 MV_RECT_BUFFER_VERT = 10
 MV_RECT_BUFFER_HORZ = 0
-
 
 #Yolo accuracy required to make a bbox
 YOLO_DET_THRESH = .33
 
 #Insert a delay from one frame to the next
-SLOW_MODE =False
+SLOW_MODE =True
 #with VOC
 #YOLO_DET_THRESH = .10
 
@@ -46,15 +42,14 @@ CV_CIRCLE_ON = False
 DetectionPoints = 200
 
 #draw yolo bboxes (every frame green)
-drawYOLO = False
+drawYOLO = True
 
 # params for ShiTomasi corner detection
 feature_params = dict( maxCorners = DetectionPoints,
                        qualityLevel = 0.1,
                        minDistance = 7,
                        blockSize = 7 )
-                       
-                       
+                                 
 # Parameters for lucas kanade optical flow
 lk_params = dict( winSize  = (15 ,15),
                   maxLevel = 3,
