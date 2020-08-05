@@ -16,12 +16,12 @@ path = "./data/test.mp4"
 ####################################################################
 
 #Frames till next optical flow point refresh
-OF_DET_SKIP = 6
+OF_DET_SKIP = 3
+
+ALWAYS_REDRAW = True
 
 #frames till next yolo call 
 YOLO_DET_SKIP = 15
-
-
 
 #Rectangles for box movement and crosshairs on MV in said rectangle (And print loactions of each)
 DEBUG_OBJECTS = False
@@ -30,9 +30,8 @@ DEBUG_OBJECTS = False
 MV_RECT_BUFFER_VERT = 10
 MV_RECT_BUFFER_HORZ = 0
 
-
 #Yolo accuracy required to make a bbox
-YOLO_DET_THRESH = .33
+YOLO_DET_THRESH = .30
 
 #Insert a delay from one frame to the next
 SLOW_MODE =False
@@ -46,7 +45,7 @@ CV_CIRCLE_ON = False
 DetectionPoints = 200
 
 #draw yolo bboxes (every frame green)
-drawYOLO = False
+drawYOLO = True
 
 # params for ShiTomasi corner detection
 feature_params = dict( maxCorners = DetectionPoints,
@@ -62,7 +61,7 @@ lk_params = dict( winSize  = (15 ,15),
 
 
 
-
+    
 
 
 
@@ -488,7 +487,7 @@ def YOLO():
 
         darknet.copy_image_from_bytes(darknet_image,frame_resized.tobytes())
             
-        if(loops%YOLO_DET_SKIP==0 or detections is None):
+        if(loops%YOLO_DET_SKIP==0 or detections is None or ALWAYS_REDRAW):
                                                             #IT WAS: thresh=0.25
             detections = darknet.detect_image(netMain, metaMain, darknet_image, thresh=YOLO_DET_THRESH)
         #image = cvDrawOneBox(detections, frame_resized)
