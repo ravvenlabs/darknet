@@ -34,7 +34,7 @@ MV_RECT_BUFFER_HORZ = 0
 YOLO_DET_THRESH = .30
 
 #Insert a delay from one frame to the next
-SLOW_MODE =True
+SLOW_MODE =False
 #with VOC
 #YOLO_DET_THRESH = .10
 
