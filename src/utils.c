@@ -1031,14 +1031,3 @@ int make_directory(char *path, int mode)
     return mkdir(path, mode);
 #endif
 }
-
-unsigned long custom_hash(char *str)
-{
-    unsigned long hash = 5381;
-    int c;
-
-    while (c = *str++)
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-    return hash;
-}

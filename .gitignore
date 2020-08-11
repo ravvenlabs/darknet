@@ -16,12 +16,12 @@ submission/
 
 # edited
 
-build/darknet/*.sln
-build/darknet/*.vcxproj
-build/darknet/*.vcxproj.user
-build/darknet/*.cs
+# build/darknet/*.sln
+# build/darknet/*.vcxproj
+# build/darknet/*.vcxproj.user
+# build/darknet/*.cs
 
-build_*/
+# build_*/
 !build/darknet/YoloWrapper.cs
 .fuse*
 
