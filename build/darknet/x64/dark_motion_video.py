@@ -10,12 +10,14 @@ import sys
 
 import pdb
 #openCV static info
-path = "./data/test.mp4"
+#path = "./data/test.mp4"
+
+path = "./data/two_min_alps_traffic.mp4"
 
 ####################################################################
 
 #Frames till next optical flow point refresh
-OF_DET_SKIP = 3
+OF_DET_SKIP = 2
 
 ALWAYS_REDRAW = True
 
@@ -46,6 +48,8 @@ DetectionPoints = 200
 
 #draw yolo bboxes (every frame green)
 drawYOLO = True
+
+Draw_MV_BOXES = True
 
 # params for ShiTomasi corner detection
 feature_params = dict( maxCorners = DetectionPoints,
@@ -310,17 +314,17 @@ def MoveDetection(detection, dx,dy):
 def YOLO():
 
     global metaMain, netMain, altNames
-    #configPath = "./cfg/yolov4.cfg"
-    #weightPath = "./weights/yolov4.weights"
-    #metaPath = "./cfg/coco.data"
+    configPath = "./cfg/yolov4.cfg"
+    weightPath = "./weights/yolov4.weights"
+    metaPath = "./cfg/coco.data"
     
     #configPath = "./cfg/yolov3.cfg"
     #weightPath = "./weights/yolov3.weights"
     #metaPath = "./cfg/coco.data"
     
-    configPath = "./cfg/yolov2-tiny.cfg"
-    weightPath = "./weights/yolov2-tiny.weights"
-    metaPath = "./cfg/coco.data"
+    #configPath = "./cfg/yolov2-tiny.cfg"
+    #weightPath = "./weights/yolov2-tiny.weights"
+    #metaPath = "./cfg/coco.data"
 
 
     #-->VOC is horrible currently
@@ -365,7 +369,7 @@ def YOLO():
             pass
     #cap = cv2.VideoCapture(0)
 #    cap = cv2.VideoCapture("test.mp4")
-    cap = cv2.VideoCapture("./data/test.mp4")
+    cap = cv2.VideoCapture(path)
     
     cap.set(3, darknet.network_width(netMain))
     cap.set(4, darknet.network_height(netMain))
@@ -513,8 +517,8 @@ def YOLO():
             MVBoxes, dbgFrame,addedToFrame = UpdateMvBoxes(MVBoxes, good_new, good_old, image, mask)
         COLOR = (0,0,255)
         #pdb.set_trace()
-        Draw = True
-        if(Draw):
+        
+        if(Draw_MV_BOXES):
         
             if(dbgFrame is None):
                 image = cvDrawBoxesFromMVList(MVBoxes, image,COLOR)
