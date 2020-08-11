@@ -51,7 +51,7 @@ Thumbs.db
 # src/version.h
 
 # Build artifacts
-lib/
+# lib/
 share/
 include/darknet/
 uselib
@@ -81,3 +81,5 @@ build/darknet/x64/data/VOCdevkit/*
 *.weights
 *.mp4
 !build/darknet/x64/mixed_debug_darknet
+
+!3rdparty/lib/*
