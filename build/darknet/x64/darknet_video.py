@@ -60,9 +60,15 @@ altNames = None
 def YOLO():
 
     global metaMain, netMain, altNames
-    configPath = "./cfg/yolov2-tiny.cfg"
-    weightPath = "./weights/yolov2-tiny.weights"
+    #configPath = "./cfg/yolov2-tiny.cfg"
+    #weightPath = "./weights/yolov2-tiny.weights"
+    #metaPath = "./cfg/coco.data"
+    
+    configPath = "./cfg/yolov3-tiny.cfg"
+    weightPath = "./weights/yolov3-tiny.weights"
     metaPath = "./cfg/coco.data"
+    
+    
     if not os.path.exists(configPath):
         raise ValueError("Invalid config path `" +
                          os.path.abspath(configPath)+"`")
@@ -99,7 +105,8 @@ def YOLO():
             pass
     #cap = cv2.VideoCapture(0)
 #    cap = cv2.VideoCapture("test.mp4")
-    cap = cv2.VideoCapture("./data/test.mp4")
+    #cap = cv2.VideoCapture("./data/test.mp4")
+    cap = cv2.VideoCapture("./data/two_min_alps_traffic.mp4")
     cap.set(3, 1280)
     cap.set(4, 720)
     out = cv2.VideoWriter(
@@ -121,7 +128,7 @@ def YOLO():
 
         darknet.copy_image_from_bytes(darknet_image,frame_resized.tobytes())
 
-        detections = darknet.detect_image(netMain, metaMain, darknet_image, thresh=0.25)
+        detections = darknet.detect_image(netMain, metaMain, darknet_image, thresh=0.15)
         image = cvDrawBoxes(detections, frame_resized)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         print(1/(time.time()-prev_time))
