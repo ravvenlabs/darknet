@@ -7,8 +7,9 @@ import numpy as np
 import time
 import sys
 #import darknet
-
+import math
 import pdb
+import matplotlib.pyplot as plt
 #openCV static info
 path = "./data/test.mp4"
 #path = "./data/simpler_trim.mp4"
@@ -20,12 +21,16 @@ path = "./data/test.mp4"
 #Frames till next optical flow point refresh
 OF_DET_SKIP = 4
 
-ALWAYS_REDRAW = True
+ALWAYS_REDRAW = False
+
+
 
 #frames till next yolo call 
-YOLO_DET_SKIP = 2
+YOLO_DET_SKIP = 1
 
 PRINT_FRAMERATE = True
+
+PRINT_DRIFT_CALC = False
 
 #Rectangles for box movement and crosshairs on MV in said rectangle (And print locations of each)
 DEBUG_OBJECTS = False
@@ -35,20 +40,22 @@ MV_RECT_BUFFER_VERT = 10
 MV_RECT_BUFFER_HORZ = 10
 
 #Yolo accuracy required to make a bbox
-YOLO_DET_THRESH = .20
+YOLO_DET_THRESH = .35
 HI_THRESH=.5
-NMS=.15
+NMS=.30
 #Insert a delay from one frame to the next
 SLOW_MODE =False
 #with VOC
 #YOLO_DET_THRESH = .10
 
-MV_YOLO_ASSOCIATION_BUFFER_X = 10
-MV_YOLO_ASSOCIATION_BUFFER_Y = 10
+MV_YOLO_ASSOCIATION_BUFFER_X = 5
+MV_YOLO_ASSOCIATION_BUFFER_Y = 5
 
 
 #put circlews on most recent O.F. point
 CV_CIRCLE_ON = False
+#put lines on for O.F.
+CV_LINES_ON = False
 
 #more objects detected and tracked
 DetectionPoints = 250
@@ -58,7 +65,7 @@ drawYOLO = True
 
 Draw_MV_BOXES = True
 
-CALC_MV_YOLO_CENTER_DRIFT = True
+CALC_MV_YOLO_CENTER_DRIFT = False
 
 # params for ShiTomasi corner detection
 feature_params = dict( maxCorners = DetectionPoints,
@@ -334,6 +341,7 @@ def rectOverlap(rect1,rect2):
     #if overlap top or bottom
     if(r1_p1[1] - MV_YOLO_ASSOCIATION_BUFFER_Y >= r2_p2[1] or r2_p1[1]- MV_YOLO_ASSOCIATION_BUFFER_Y >= r1_p2[1]):
         #print("Top bottom fail")
+        #print("Top bottom fail")
         #print("Failed TB")
         return False
     
@@ -343,6 +351,8 @@ def rectOverlap(rect1,rect2):
 def MatchMVboxToYoloNew(detections, mvBoxes, dbgimg=None):
     pass
     mvBoxesWithYoloID = []
+    candidate = []
+    dist = 10000
     
     for mvbox in mvBoxes:
         name_mv, detsProb_mv, (x_mv,y_mv,w_mv,h_mv) = mvbox
@@ -352,6 +362,8 @@ def MatchMVboxToYoloNew(detections, mvBoxes, dbgimg=None):
         pt1_mv = (xmin_mv, ymin_mv)
         pt2_mv = (xmax_mv, ymax_mv)
         count = 0
+        at_least_one_match = False
+        
         for yolo_det in detections: 
             name_yolo, detsProb_yolo, (x_yolo,y_yolo,w_yolo,h_yolo) = yolo_det
             #pdb.set_trace()
@@ -371,16 +383,42 @@ def MatchMVboxToYoloNew(detections, mvBoxes, dbgimg=None):
             if( rectOverlap( (pt1_mv, pt2_mv), ( pt1_yolo, pt2_yolo) ) ):
                 #sys.stdout.write("Rect overlap\r")
                 #sys.stdout.flush()
-            
+                at_least_one_match = True
                 #overlap found, make match
-                mvBoxesWithYoloID.append((mvbox, yolo_det))
-                break
+                #mvBoxesWithYoloID.append((mvbox, yolo_det))
+                #break
+                dist = DiagDist(x_mv,y_mv, x_yolo,y_yolo)
+                
+                candidate.append((yolo_det, dist))
+                
+                
             else:
                 #sys.stdout.write("              \r" )
                 #sys.stdout.flush()
                 pass
-            
         
+        #find closest box to pair with
+        if(at_least_one_match):
+            least = 0
+            least_val = 10000
+            min_ct = 0
+            
+            for yolo_det_dist in candidate:
+                color = (0,0,255)
+                #cvDrawOneBox(yolo_det, dbgimg, color)
+                yolo_det,dist = yolo_det_dist
+                
+                if(dist<least_val):
+                    least = min_ct
+                    least_val = dist
+        #            
+                min_ct+=1
+            
+        #    pdb.set_trace()
+            
+            mvBoxesWithYoloID.append((mvbox, candidate[least][0]))
+            candidate.clear()
+            
    #     color = (255,255,0)
    #     cvDrawOneBox(mvbox, dbgimg, color)
    
@@ -393,18 +431,64 @@ def MatchMVboxToYoloNew(detections, mvBoxes, dbgimg=None):
         
         return mvBoxesWithYoloID, dbgimg
 
+def DiagDist(x1,y1,x2,y2):
+    #return center point
+    
+    dx = x1-x2
+    dy= y1-y2
+    dist = math.sqrt( dx*dx+dy*dy )
+    
+    return dist
+    
+    
+    
+
 
 def CalcDistances(matches):
-    #for match in matches:
-        
     
-    return None
+    distList = []
+    
+    totalDriftAmount = 0
+    
+    for match in matches:
+        #pdb.set_trace()
+        #Center = centroid(p1)
+        #center2 = centroid(p2)
+        
+        mvBox, yoloBox = match
+        
+        name_mv, detsProb_mv, (x_mv,y_mv,w_mv,h_mv) = mvBox
+        
+        name_yolo, detsProb_yolo, (x_yolo,y_yolo,w_yolo,h_yolo) = yoloBox
+    
+        dist = DiagDist(x_mv,y_mv, x_yolo,y_yolo)
+        
+        distList.append(dist)
+    
+        #Get yolobox diag
+    
+        xmin, ymin, xmax, ymax = convertBack(x_yolo,y_yolo,w_yolo,h_yolo)
+    
+        totalDriftAmount += (dist)/(DiagDist( xmin,ymin,xmax,ymax))
+    
+    
+    
+    return distList, totalDriftAmount
 
 
-def CalcFinalError(distances):
-    pass
-    return None
- 
+
+
+def cvDrawLinkCenter(mv,yolo, image):
+    
+    name_mv, detsProb_mv, (x_mv,y_mv,w_mv,h_mv) = mv
+        
+    name_yolo, detsProb_yolo, (x_yolo,y_yolo,w_yolo,h_yolo) = yolo
+    
+    image = cv2.line(image, (int(x_mv),int(y_mv)),(int(x_yolo),int(y_yolo)), (255,255,255), 2)
+    
+    
+    return image
+
 def DrawMatchesDiffColors(matches, detections, image):
     for match in matches:
         mvbox, yolo_box = match
@@ -420,11 +504,13 @@ def DrawMatchesDiffColors(matches, detections, image):
         
         #COLOR2 = (COLOR[0]+50, COLOR[1]+50, COLOR[2]+50)
 #       
-
+        image = cvDrawLinkCenter(mvbox,yolo_box, image)
 
  #       pdb.set_trace()
-        image = cvDrawOneBox(mvbox, image, COLOR)
-        image = cvDrawOneBox(yolo_box, image, COLOR)
+        
+ 
+        #image = cvDrawOneBox(mvbox, image, COLOR)
+        #image = cvDrawOneBox(yolo_box, image, COLOR)
         
     return image
 
@@ -439,13 +525,13 @@ def YOLO():
     #weightPath = "./weights/yolov3.weights"
     #metaPath = "./cfg/coco.data"
 
-    #configPath = "./cfg/yolov2-tiny.cfg"
-    #weightPath = "./weights/yolov2-tiny.weights"
-    #metaPath = "./cfg/coco.data"
-
-    configPath = "./cfg/yolov3-tiny.cfg"
-    weightPath = "./weights/yolov3-tiny.weights"
+    configPath = "./cfg/yolov2-tiny.cfg"
+    weightPath = "./weights/yolov2-tiny.weights"
     metaPath = "./cfg/coco.data"
+
+    #configPath = "./cfg/yolov3-tiny.cfg"
+    #weightPath = "./weights/yolov3-tiny.weights"
+    #metaPath = "./cfg/coco.data"
 
     #-->VOC is horrible currently
     #configPath = "./cfg/yolov2-tiny-voc.cfg"
@@ -531,9 +617,19 @@ def YOLO():
     detections = None
     maxx=0
     maxy=0
+    
+    cumulitiveDrift = 0
+    
+    driftArr = []
+    frameRateArr = []
+    loopsArr = []
+    
+    breakAt = 1000
+    
     while cap.isOpened():
         addedToFrame = False
         loops=loops+1
+        loopsArr.append(loops)
         if(SLOW_MODE):
             time.sleep(0.05)
         
@@ -574,7 +670,8 @@ def YOLO():
             for i,(new,old) in enumerate(zip(good_new, good_old)):
                 a,b = new.ravel()
                 c,d = old.ravel()
-                mask = cv2.line(mask, (a,b),(c,d), color[i].tolist(), 2)
+                if(CV_LINES_ON):
+                    mask = cv2.line(mask, (a,b),(c,d), color[i].tolist(), 2)
                 
                 #mask = cv2.line(mask, (a,b),(c,d), color[i].tolist(), 2)
                 if(CV_CIRCLE_ON):
@@ -614,7 +711,7 @@ def YOLO():
         
         
         if(loops%YOLO_DET_SKIP==0 or MVBoxes is None):
-            MVBoxes = AssocDetections(detections)
+            MVBoxes =  (detections)
             #sys.stdout.write("MVBoxes assigned\n")
         
         else:
@@ -643,27 +740,35 @@ def YOLO():
         
         
         #pdb.set_trace()
- 
-        matches = MatchMVboxToYoloNew(detections,MVBoxes) #, image)
+        if (CALC_MV_YOLO_CENTER_DRIFT):
+            matches, image = MatchMVboxToYoloNew(detections,MVBoxes, image)
         
-        image = DrawMatchesDiffColors(matches, detections, image)
+            image = DrawMatchesDiffColors(matches, detections, image)
         
-        #CALC_DISTANCES()
-        #distances = CalcDistances(matches, detections)
-        
-        #CALC_ERROR_PERCENT()
-        #ErrorPercent = CalcFinalError(distances)
-         
+            #CALC_DISTANCES()
+            distances, totalError = CalcDistances(matches)
+            cumulitiveDrift +=totalError
         
         
         ##########################################
         
         #print(1/(time.time()-prev_time))
         
+            
+        if(PRINT_DRIFT_CALC):
+            sys.stdout.write("Drift amount: %f     \r" % totalError )
+            sys.stdout.flush()
+            
+            driftArr.append(totalError)
+            
+        
         
         if(PRINT_FRAMERATE):
-            sys.stdout.write("Frame Rate: %f     \r" % (1/(time.time()-prev_time)) )
+        
+            frameRateCur = (1/(time.time()-prev_time))
+            sys.stdout.write("Frame Rate: %f     \r" % frameRateCur)
             sys.stdout.flush()
+            frameRateArr.append(frameRateCur)
         
         ################ BIG VIEW ##
         #MAgnify it eyes
@@ -705,8 +810,20 @@ def YOLO():
         old_gray = frame_gray.copy()
         p0 = good_new.reshape(-1,1,2)
         #cv2.waitKey(3)
-        if(cv2.waitKey(3) & 0xFF == ord('q')):
+        if(cv2.waitKey(3) & 0xFF == ord('q') or loops > breakAt):
             break
+    
+    if (CALC_MV_YOLO_CENTER_DRIFT):
+        plt.plot(loopsArr, driftArr, label='Drift Values')
+    #    plt.legend()
+        plt.show()
+    
+    if (PRINT_FRAMERATE):
+        plt.plot(loopsArr, frameRateArr, label='Framerate Values')
+        plt.legend()
+        plt.show()
+    
+    
     cap.release()
     out.release()
     cv2.destroyAllWindows()
