@@ -1,1 +1,1 @@
-..\darknet.exe detector train ../cfg/brian_voc.data ../cfg/yolov2-tiny-voc.cfg ../pretrained/darknet53.weights
+..\darknet.exe detector train ../cfg/brian_voc.data ../cfg/yolov2-tiny-voc.cfg ../pretrained/darknet53.weights -clear

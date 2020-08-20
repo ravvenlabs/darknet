@@ -60,13 +60,13 @@ altNames = None
 def YOLO():
 
     global metaMain, netMain, altNames
-    #configPath = "./cfg/yolov2-tiny.cfg"
-    #weightPath = "./weights/yolov2-tiny.weights"
-    #metaPath = "./cfg/coco.data"
-    
-    configPath = "./cfg/yolov3-tiny.cfg"
-    weightPath = "./weights/yolov3-tiny.weights"
+    configPath = "./cfg/yolov2-tiny.cfg"
+    weightPath = "./weights/yolov2-tiny.weights"
     metaPath = "./cfg/coco.data"
+    
+    #configPath = "./cfg/yolov3-tiny.cfg"
+    #weightPath = "./weights/yolov3-tiny.weights"
+    #metaPath = "./cfg/coco.data"
     
     
     if not os.path.exists(configPath):
