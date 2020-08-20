@@ -1,7 +1,0 @@
-classes= 20
-train  = D:\Yolo\darknet\build\darknet\x64\data\train.txt
-valid  = D:\Yolo\darknet\build\darknet\x64\data\2007_test.txt
-#difficult = D:\Yolo\darknet\build\darknet\x64\data\2007_test.txt
-names = ../data/voc.names
-backup = ../backup/
-

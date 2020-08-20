@@ -77,7 +77,7 @@ build/darknet/x64/Debug/
 build/darknet/x64/Release/
 build/darknet/Debug/
 build/darknet/x64/data/VOCdevkit/*
-build/darknet/x64/cfg/*
+build/darknet/x64/cfg/*.data
 
 *.74
 *.weights
