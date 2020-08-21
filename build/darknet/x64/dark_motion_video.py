@@ -89,21 +89,26 @@ lk_params = dict( winSize  = (15 ,15),
 
 ###MODELS##
 
+#yolov4
 #configPath = "./cfg/yolov4.cfg"
 #weightPath = "./weights/yolov4.weights"
 #metaPath = "./cfg/coco.data"
 
+#yolov3
 #configPath = "./cfg/yolov3.cfg"
 #weightPath = "./weights/yolov3.weights"
 #metaPath = "./cfg/coco.data"
 
+#yolov2 tiny
 configPath = "./cfg/yolov2-tiny.cfg"
 weightPath = "./weights/yolov2-tiny.weights"
 metaPath = "./cfg/coco.data"
 
+#yolov3 tiny
 #configPath = "./cfg/yolov3-tiny.cfg"
 #weightPath = "./weights/yolov3-tiny.weights"
 #metaPath = "./cfg/coco.data"
+
 
 #-->VOC is horrible currently
 #configPath = "./cfg/yolov2-tiny-voc.cfg"
