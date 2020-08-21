@@ -20,6 +20,14 @@ path = "./data/test.mp4"
 
 ####################################################################
 
+#USE OTB DATA
+USE_OTB = True
+    #WHEN USING! make sure the path is to an otb data folder as well
+
+#plot otb ground truth
+SHOW_OTB_GT = True
+
+
 #Frames till next optical flow point refresh
 OF_DET_SKIP = 4
 
