@@ -10,10 +10,12 @@ import sys
 import math
 import pdb
 import matplotlib.pyplot as plt
+
+
+
 #openCV static info
 path = "./data/test.mp4"
 #path = "./data/simpler_trim.mp4"
-
 #path = "./data/two_min_alps_traffic.mp4"
 
 ####################################################################
@@ -21,16 +23,14 @@ path = "./data/test.mp4"
 #Frames till next optical flow point refresh
 OF_DET_SKIP = 4
 
-ALWAYS_REDRAW = False
-
-
+#Force darknet to predict and redraw every frame
+ALWAYS_REDRAW_Redetect = False
 
 #frames till next yolo call 
-YOLO_DET_SKIP = 1
+YOLO_DET_SKIP = 10
 
-PRINT_FRAMERATE = True
-
-PRINT_DRIFT_CALC = False
+#PRint and plot framerate
+PRINT_FRAMERATE = False
 
 #Rectangles for box movement and crosshairs on MV in said rectangle (And print locations of each)
 DEBUG_OBJECTS = False
@@ -41,30 +41,39 @@ MV_RECT_BUFFER_HORZ = 10
 
 #Yolo accuracy required to make a bbox
 YOLO_DET_THRESH = .35
+
+#darknet hierarchical threshold - how specific the detections should be with label
 HI_THRESH=.5
+
+#non max suppression threshold. Stops multiple boxes from being placed in the same spot
 NMS=.30
+
 #Insert a delay from one frame to the next
 SLOW_MODE =False
+
 #with VOC
 #YOLO_DET_THRESH = .10
 
+#When matching yolo detections to existing MV bboxes, this is the overlap buffer they can be off by and still "intersect"
 MV_YOLO_ASSOCIATION_BUFFER_X = 5
 MV_YOLO_ASSOCIATION_BUFFER_Y = 5
 
 
-#put circlews on most recent O.F. point
+#put circles on most recent O.F. point
 CV_CIRCLE_ON = False
 #put lines on for O.F.
 CV_LINES_ON = False
 
-#more objects detected and tracked
+#more objects detected and tracked with O.F.
 DetectionPoints = 250
 
 #draw yolo bboxes (every frame green)
 drawYOLO = True
 
+#Draw motion-vector-propelled boxes
 Draw_MV_BOXES = True
 
+#Calulate the Centroid drift
 CALC_MV_YOLO_CENTER_DRIFT = False
 
 # params for ShiTomasi corner detection
@@ -78,10 +87,30 @@ lk_params = dict( winSize  = (15 ,15),
                   maxLevel = 3,
                   criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 
+###MODELS##
 
+#configPath = "./cfg/yolov4.cfg"
+#weightPath = "./weights/yolov4.weights"
+#metaPath = "./cfg/coco.data"
 
-    
+#configPath = "./cfg/yolov3.cfg"
+#weightPath = "./weights/yolov3.weights"
+#metaPath = "./cfg/coco.data"
 
+configPath = "./cfg/yolov2-tiny.cfg"
+weightPath = "./weights/yolov2-tiny.weights"
+metaPath = "./cfg/coco.data"
+
+#configPath = "./cfg/yolov3-tiny.cfg"
+#weightPath = "./weights/yolov3-tiny.weights"
+#metaPath = "./cfg/coco.data"
+
+#-->VOC is horrible currently
+#configPath = "./cfg/yolov2-tiny-voc.cfg"
+#weightPath = "./weights/yolov2-tiny-voc.weights"
+#metaPath = "./cfg/voc.data"
+
+###########
 
 
 #####################################################################
@@ -90,7 +119,7 @@ lk_params = dict( winSize  = (15 ,15),
 loops = 0
 # ####################
 
-
+#This function just detects where the file is being run from and adjusts paths to hit required folders 
 def FixVSPath():
 
     subFolder = (os.getcwd()).split("\\")[-1]
@@ -109,6 +138,8 @@ def FixVSPath():
         print("No subdir change needed")
 
 
+#Exsiting function from darknet
+#This just converts a rectangles center (x,y), width and height to the min and max x and y values 
 def convertBack(x, y, w, h):
     xmin = int(round(x - (w / 2)))
     xmax = int(round(x + (w / 2)))
@@ -116,6 +147,7 @@ def convertBack(x, y, w, h):
     ymax = int(round(y + (h / 2)))
     return xmin, ymin, xmax, ymax
 
+#This function will draw boxes. It is now interchangable with cvDrawBoxes
 def cvDrawBoxesFromMVList(detections, img, COLOR):
     red,green,blue = COLOR
     for detection in detections:
@@ -138,7 +170,8 @@ def cvDrawBoxesFromMVList(detections, img, COLOR):
         #            [red,green,blue], 2)
     return img
 
-
+#Exsiting function from darknet
+#This function draws boxes on the frame where detections are
 def cvDrawBoxes(detections, img, COLOR):
     red,green,blue = COLOR
     for detection in detections:
@@ -163,6 +196,7 @@ netMain = None
 metaMain = None
 altNames = None
 
+#This will just draw one box in a list. It is for debugging without too much clutter
 def cvDrawOneBox(detection, img, COLOR):
 
     red,green,blue = COLOR
@@ -189,7 +223,7 @@ def cvDrawOneBox(detection, img, COLOR):
 netMain = None
 metaMain = None
 altNames = None
-
+#Copy detections
 def AssocDetections(detections):
     
     MV_and_Detections = []
@@ -200,16 +234,19 @@ def AssocDetections(detections):
         #id+=1
         
     return MV_and_Detections
-
-def InsideRect(a,b,x,y,w,h, bufferV,bufferH):
     
+#Determine whether a point is inside a rectangle (Error buffer is taken into account too)
+def InsideRect(a,b,x,y,w,h, bufferV,bufferH):
     return (a>=(x-bufferH) and a<=(x+w+bufferH) and b>=(y-bufferV) and b<=(y+h+bufferV))
     
-    
+#Move the motion vector boxes 
+#takes in the new detections and the new and old optical flow points
 def UpdateMvBoxes(detections, newFramePoints, oldFramePoints, dbgFrame=None, mask = None):
     
     element = 0
     addedToFrame = False
+    
+    #For each detection
     for detection in detections:
         
         #(id, detection, mvs) = packed
@@ -221,90 +258,71 @@ def UpdateMvBoxes(detections, newFramePoints, oldFramePoints, dbgFrame=None, mas
         
         #unpack this detection
         name, detsProb, (x,y,w,h) = detection
-        
-        #added = False
-        
+           
         total = 0
         
+        #for each set of points in new and old
         for i,(new,old) in enumerate(zip(newFramePoints, oldFramePoints)):
+                
                 a,b = new.ravel()
                 c,d = old.ravel()
-                
-                
-                
+               
                 #pdb.set_trace()
                 
                 #mask = cv2.line(mask, (a,b),(c,d), color[i].tolist(), 2)
                 #frame_read = cv2.circle(frame_read,(a,b),5,color[i].tolist(),-1)
         
-                #if old point inside rectangle
-                
+                #if new point is inside rectangle
                 if(InsideRect(a,b,x,y,w,h, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)):
                 
                     total+=1
-                
                     #mask = cv2.line(mask, (int(0),int(y)),(int(1000),int(y+h)), (0,255,150), 5)
                     #mask = cv2.line(mask, (int(x),int(0)),(int(x+w),int(1000)), (0,255,150), 5)
                     #pdb.set_trace()
-                    xmin, ymin, xmax, ymax = convertBack(
-                    float(x), float(y), float(w), float(h))
-                    pt1 = (xmin, ymin)
-                    pt2 = (xmax, ymax)
                     
+                    #For single frame debug stop
                     addedToFrame = True
                     
                     if(DEBUG_OBJECTS):
+                        xmin, ymin, xmax, ymax = convertBack( float(x), float(y), float(w), float(h))
+                        pt1 = (xmin, ymin)
+                        pt2 = (xmax, ymax)
                         mask = cv2.rectangle(mask, (pt1),(pt2), (255,0,0), 5)
                         mask=cv2.line(mask, (int(a), 0),(int(a), mask.shape[0]), (255, 255, 0), 1, 1)
                         mask=cv2.line(mask, (0, int(b)),(mask.shape[1], int(b) ), (255, 255, 0), 1, 1)
-#                    
-                    #pdb.set_trace()
+#                       #pdb.set_trace()
                         print("Rectangle at " ,pt1 ," by " , pt2)
-                    
                         print("OpenCV point is at " ,a ," by " , b)
-                    
                     else:
                         pass
-                    
-                    
-                    
-                    #added = True
-                    #mask = cv2.line(mask, (a,b),(c,d), color[i].tolist(), 2)
-                    #dbgFrame = cv2.circle(dbgFrame,(a,b),5,color[i].tolist(),-1)
-                    #pdb.set_trace()
+                
+                    #Update the x and y change based on new and old point movement
                     DistX = DistX +  a-c
                     DistY = DistY + b-d
     
-    
-        #if(added):
-        #    if(dbgFrame is not None):
-        #        pdb.set_trace()
-                #cv2.imshow('Frame', dbgFrame)
-    
+        #Divide distance by number of mvs in box
         if(total>0):
-    
             DistX = DistX / total
             DistY = DistY / total
                 
+        #If the x or y needs to be adjusted because shift is nonzero, call move function
         if(DistX != 0 or DistY != 0):
             #pdb.set_trace()
+            
+            #This function actually accesses the detections properties
             NewDetection = MoveDetection(detection, DistX, DistY)
-        
-            #repacked = (id, NewDetection, mvs)
-        
+            #replace
             detections[element] = NewDetection
-        
         element+=1
-        
-        
         
     return detections, dbgFrame, addedToFrame
 
+#This function actually accesses the detections struct paramss and updates them
 def MoveDetection(detection, dx,dy):
     #x -> detection[2][0]
     #y -> detection[2][1]
     name, detsProb, (x,y,w,h) = detection
-    x, y, w, h = detection[2][0], detection[2][1], detection[2][2], detection[2][3]
+    #x, y, w, h = detection[2][0], detection[2][1], detection[2][2], detection[2][3]
     #pdb.set_trace()
     x+=dx
     y+=dy
@@ -316,9 +334,9 @@ def MoveDetection(detection, dx,dy):
     #detection[2][3] = h
     detection = (name, detsProb, (x,y,w,h))
     
-    
     return detection
 
+#This function will return true if one rectangle overlaps with another
 #pass in top left and bottom right tuples of points
 #top left 1, bot right 1
 #top left 2, bot right 2
@@ -347,39 +365,43 @@ def rectOverlap(rect1,rect2):
     
     return True
     
-
+#This function is for matching a new detection to an existing box for an object
+#It will go thru all existing boxes and then see if there are any new detection boxes that overlap the old mv box
+#If there are, candidates distances are calculated and the closest box is matched to the existing box
 def MatchMVboxToYoloNew(detections, mvBoxes, dbgimg=None):
     pass
     mvBoxesWithYoloID = []
     candidate = []
     dist = 10000
     
+    #for motion vector boxes
     for mvbox in mvBoxes:
+    
         name_mv, detsProb_mv, (x_mv,y_mv,w_mv,h_mv) = mvbox
-        
         xmin_mv, ymin_mv, xmax_mv, ymax_mv = convertBack(
                     float(x_mv), float(y_mv), float(w_mv), float(h_mv))
+        
+        #get corner points and put in tuple
         pt1_mv = (xmin_mv, ymin_mv)
         pt2_mv = (xmax_mv, ymax_mv)
         count = 0
         at_least_one_match = False
-        
+    
+        #For all new detections
         for yolo_det in detections: 
+            #unpack
             name_yolo, detsProb_yolo, (x_yolo,y_yolo,w_yolo,h_yolo) = yolo_det
             #pdb.set_trace()
             xmin_yolo, ymin_yolo, xmax_yolo, ymax_yolo = convertBack(
                     float(x_yolo), float(y_yolo), float(w_yolo), float(h_yolo))
+            
+            #get corner points and put in tuple
             pt1_yolo = (xmin_yolo, ymin_yolo)
             pt2_yolo = (xmax_yolo, ymax_yolo)
-        
-            #print("Rectangles overlap")
-            
-            #print(count)
-            count +=1
-     
-    #        color = (0,255,255)
-     #       cvDrawOneBox(yolo_det, dbgimg, color)
 
+            count +=1
+
+            #If there is an overlap of an mv and a yolo box
             if( rectOverlap( (pt1_mv, pt2_mv), ( pt1_yolo, pt2_yolo) ) ):
                 #sys.stdout.write("Rect overlap\r")
                 #sys.stdout.flush()
@@ -387,11 +409,11 @@ def MatchMVboxToYoloNew(detections, mvBoxes, dbgimg=None):
                 #overlap found, make match
                 #mvBoxesWithYoloID.append((mvbox, yolo_det))
                 #break
-                dist = DiagDist(x_mv,y_mv, x_yolo,y_yolo)
-                
+                #calulate distance fo the boxes
+                dist = DiagDist(x_mv,y_mv, x_yolo,y_yolo)              
+                #add it to the list
                 candidate.append((yolo_det, dist))
-                
-                
+  
             else:
                 #sys.stdout.write("              \r" )
                 #sys.stdout.flush()
@@ -403,6 +425,7 @@ def MatchMVboxToYoloNew(detections, mvBoxes, dbgimg=None):
             least_val = 10000
             min_ct = 0
             
+            #for each candidate box determine which is the closest
             for yolo_det_dist in candidate:
                 color = (0,0,255)
                 #cvDrawOneBox(yolo_det, dbgimg, color)
@@ -416,14 +439,10 @@ def MatchMVboxToYoloNew(detections, mvBoxes, dbgimg=None):
             
         #    pdb.set_trace()
             
+            #Add matched pair to return list
             mvBoxesWithYoloID.append((mvbox, candidate[least][0]))
             candidate.clear()
-            
-   #     color = (255,255,0)
-   #     cvDrawOneBox(mvbox, dbgimg, color)
-   
-    #cv2.rectangle(dbgimg, (200,200),(250,250), (255,250,0), 3)
- 
+
     if(dbgimg is None):
         return mvBoxesWithYoloID
     else:
@@ -431,6 +450,7 @@ def MatchMVboxToYoloNew(detections, mvBoxes, dbgimg=None):
         
         return mvBoxesWithYoloID, dbgimg
 
+#This is a distance calculation between two points
 def DiagDist(x1,y1,x2,y2):
     #return center point
     
@@ -440,14 +460,11 @@ def DiagDist(x1,y1,x2,y2):
     
     return dist
     
-    
-    
-
-
+#This is for the drift calulations. It calulates the distances between each pair of boxes
 def CalcDistances(matches):
     
-    distList = []
     
+    distList = []
     totalDriftAmount = 0
     
     for match in matches:
@@ -476,8 +493,7 @@ def CalcDistances(matches):
     return distList, totalDriftAmount
 
 
-
-
+#This function draws a white line between 2 boxes
 def cvDrawLinkCenter(mv,yolo, image):
     
     name_mv, detsProb_mv, (x_mv,y_mv,w_mv,h_mv) = mv
@@ -489,6 +505,8 @@ def cvDrawLinkCenter(mv,yolo, image):
     
     return image
 
+#This function will go through a list of pairs and draw the connecting line.
+#It will also show the paired boxes in different colors for easy inspection of pairing
 def DrawMatchesDiffColors(matches, detections, image):
     for match in matches:
         mvbox, yolo_box = match
@@ -514,30 +532,10 @@ def DrawMatchesDiffColors(matches, detections, image):
         
     return image
 
+#Main loop
 def YOLO():
 
     global metaMain, netMain, altNames
-    #configPath = "./cfg/yolov4.cfg"
-    #weightPath = "./weights/yolov4.weights"
-    #metaPath = "./cfg/coco.data"
-    
-    #configPath = "./cfg/yolov3.cfg"
-    #weightPath = "./weights/yolov3.weights"
-    #metaPath = "./cfg/coco.data"
-
-    configPath = "./cfg/yolov2-tiny.cfg"
-    weightPath = "./weights/yolov2-tiny.weights"
-    metaPath = "./cfg/coco.data"
-
-    #configPath = "./cfg/yolov3-tiny.cfg"
-    #weightPath = "./weights/yolov3-tiny.weights"
-    #metaPath = "./cfg/coco.data"
-
-    #-->VOC is horrible currently
-    #configPath = "./cfg/yolov2-tiny-voc.cfg"
-    #weightPath = "./weights/yolov2-tiny-voc.weights"
-    #metaPath = "./cfg/voc.data"
-    
     
     if not os.path.exists(configPath):
         raise ValueError("Invalid config path `" +
@@ -600,23 +598,28 @@ def YOLO():
     #OpenCV get first frame
     #
     
+    #get frame
     ret, frame_read = cap.read()
+    #resize to darknet preference
     frame_read = cv2.resize(frame_read, (darknet.network_width(netMain),
                                     darknet.network_height(netMain)), interpolation=cv2.INTER_LINEAR)
+    #Get the first frame in gray
     old_gray = cv2.cvtColor(frame_read, cv2.COLOR_BGR2GRAY)
+    #Use opencv to gather the points to track with lk
     p0 = cv2.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 
     # Create a mask image for drawing purposes
     mask = np.zeros_like(frame_read)
     
+    #init some variables for the loop
     loops=0
-    
     frame_read= None
     MVBoxes = None
     dbgFrame = None
     detections = None
     maxx=0
     maxy=0
+    NoneType=type(None)
     
     cumulitiveDrift = 0
     
@@ -624,8 +627,10 @@ def YOLO():
     frameRateArr = []
     loopsArr = []
     
+    #Run for 100 frames of video
     breakAt = 1000
     
+    #While the video is open
     while cap.isOpened():
         addedToFrame = False
         loops=loops+1
@@ -639,6 +644,8 @@ def YOLO():
             # Take first frame and find corners in it
             ret, old_frame = ret, frame_read
             old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
+            
+            #get new tracking points
             p0 = cv2.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 
             # Create a mask image for drawing purposes
@@ -659,7 +666,7 @@ def YOLO():
         # calculate optical flow
         p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
         
-        NoneType=type(None)
+        
         
         #make sure something is returned before we try and put it in the frame
         if(not isinstance(p1,NoneType)):
@@ -667,6 +674,8 @@ def YOLO():
             good_new = p1[st==1]
             good_old = p0[st==1]
             
+            
+            #This loop draws open cv features
             for i,(new,old) in enumerate(zip(good_new, good_old)):
                 a,b = new.ravel()
                 c,d = old.ravel()
@@ -688,15 +697,15 @@ def YOLO():
                                    interpolation=cv2.INTER_LINEAR)
 
         darknet.copy_image_from_bytes(darknet_image,frame_resized.tobytes())
-            
-        if(loops%YOLO_DET_SKIP==0 or detections is None or ALWAYS_REDRAW):
+          
+        #If it is time to redetect with darknet
+        if(loops%YOLO_DET_SKIP==0 or detections is None or ALWAYS_REDRAW_Redetect):
         
-        
+            #PErform darknet detection
             #IT WAS: thresh=0.25
             detections = darknet.detect_image(netMain, metaMain, darknet_image, thresh=YOLO_DET_THRESH, hier_thresh=HI_THRESH, nms=NMS)
             
-        #image = cvDrawOneBox(detections, frame_resized)
-        
+       
         COLOR = (0,255,0)
         
         if(drawYOLO):
@@ -706,27 +715,24 @@ def YOLO():
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
 ###################################################################################################################
-        
-        #(id, detection, [])
-        
-        
+
+        #If boxes were redetected, copy them to mvboxes
         if(loops%YOLO_DET_SKIP==0 or MVBoxes is None):
-            MVBoxes =  (detections)
+            MVBoxes =  AssocDetections(detections)
             #sys.stdout.write("MVBoxes assigned\n")
-        
+        #else, update them with motion vectors
         else:
-        
             MVBoxes, dbgFrame,addedToFrame = UpdateMvBoxes(MVBoxes, good_new, good_old, image, mask)
         COLOR = (0,0,255)
         #pdb.set_trace()
         
+        #Draw the mv boxes on screen in red
         if(Draw_MV_BOXES):
-        
             if(dbgFrame is None):
-                image = cvDrawBoxesFromMVList(MVBoxes, image,COLOR)
+                image = cvDrawBoxes(MVBoxes, image,COLOR)
             
             else:
-                image = cvDrawBoxesFromMVList(MVBoxes, dbgFrame,COLOR)
+                image = cvDrawBoxes(MVBoxes, dbgFrame,COLOR)
         else:
             pass
 ###################################################################################################################
@@ -734,15 +740,10 @@ def YOLO():
         ##########################################
         
         
-        #Calculate center drift between detections and MVboxes
-        
-        #PAIR_MV_YOLO()
-        
-        
+    #Calculate center drift between detections and MVboxes
         #pdb.set_trace()
         if (CALC_MV_YOLO_CENTER_DRIFT):
             matches, image = MatchMVboxToYoloNew(detections,MVBoxes, image)
-        
             image = DrawMatchesDiffColors(matches, detections, image)
         
             #CALC_DISTANCES()
@@ -752,17 +753,13 @@ def YOLO():
         
         ##########################################
         
-        #print(1/(time.time()-prev_time))
         
-            
-        if(PRINT_DRIFT_CALC):
+        #print data to cmd line
+        if(CALC_MV_YOLO_CENTER_DRIFT):
             sys.stdout.write("Drift amount: %f     \r" % totalError )
-            sys.stdout.flush()
-            
+            sys.stdout.flush()            
             driftArr.append(totalError)
             
-        
-        
         if(PRINT_FRAMERATE):
         
             frameRateCur = (1/(time.time()-prev_time))
@@ -779,9 +776,9 @@ def YOLO():
         cv2.line(image, (int(image.shape[1]/2), 0),(int(image.shape[1]/2), image.shape[0]), (255, 0, 0), 1, 1)
         cv2.line(image, (0, int(image.shape[0]/2)),(image.shape[1], int(image.shape[0]/2) ), (255, 0, 0), 1, 1)
         
-        cv2.line(image, (0, int(400)),(image.shape[0], int(400) ), (255, 0, 0), 1, 1)
-        cv2.line(image, (0, int(200)),(image.shape[0], int(200) ), (0, 255, 0), 1, 1)
-        cv2.line(image, (0, int(100)),(image.shape[0], int(100) ), (0, 0, 255), 1, 1)
+        #cv2.line(image, (0, int(400)),(image.shape[0], int(400) ), (255, 0, 0), 1, 1)
+        #cv2.line(image, (0, int(200)),(image.shape[0], int(200) ), (0, 255, 0), 1, 1)
+        #cv2.line(image, (0, int(100)),(image.shape[0], int(100) ), (0, 0, 255), 1, 1)
         
         #print("Image is " ,image.shape[0] ," by " , image.shape[1])
         
@@ -794,36 +791,32 @@ def YOLO():
         
 ##################################################################################################################################
 
-        #Do map testing down here
-        
-        
-        
-        
-        
-        
-        
-        
+        #Do map testing down here, possibly
         
         
 ##################################################################################################################################        
-        
         old_gray = frame_gray.copy()
         p0 = good_new.reshape(-1,1,2)
         #cv2.waitKey(3)
-        if(cv2.waitKey(3) & 0xFF == ord('q') or loops > breakAt):
+        if(cv2.waitKey(3) & 0xFF == ord('q')):
+            break
+            
+        if(loops > breakAt and ( CALC_MV_YOLO_CENTER_DRIFT or PRINT_FRAMERATE)):
             break
     
+    #plot center drift values
     if (CALC_MV_YOLO_CENTER_DRIFT):
         plt.plot(loopsArr, driftArr, label='Drift Values')
     #    plt.legend()
         plt.show()
     
+    #plot framerate values
     if (PRINT_FRAMERATE):
         plt.plot(loopsArr, frameRateArr, label='Framerate Values')
         plt.legend()
         plt.show()
     
-    
+    #release memory
     cap.release()
     out.release()
     cv2.destroyAllWindows()
