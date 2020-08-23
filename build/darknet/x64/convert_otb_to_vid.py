@@ -1,15 +1,16 @@
+import cv2
 import numpy as np
 import glob
  
 img_array = []
-for filename in glob.glob('C:/New folder/Images/*.jpg'):
+for filename in glob.glob('.\data\OTB_data\stationary\Walking2\img\*.jpg'):
     img = cv2.imread(filename)
     height, width, layers = img.shape
     size = (width,height)
     img_array.append(img)
  
- 
-out = cv2.VideoWriter('project.avi',cv2.VideoWriter_fourcc(*'DIVX'), 15, size)
+fourcc = cv2.VideoWriter_fourcc(*'XVID')
+out = cv2.VideoWriter('.\data\OTB_data\stationary\Walking2\otb_Walking2.avi',fourcc, 30.0, size)
  
 for i in range(len(img_array)):
     out.write(img_array[i])

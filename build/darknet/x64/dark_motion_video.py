@@ -22,10 +22,22 @@ path = "./data/test.mp4"
 
 #USE OTB DATA
 USE_OTB = True
+#path = ".\data\OTB_data\stationary\Crossing\otb_crossing.avi"
+#path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
+if(USE_OTB):
+    path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
+    #path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
+
+    otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
+
     #WHEN USING! make sure the path is to an otb data folder as well
 
-#plot otb ground truth
-SHOW_OTB_GT = True
+    #plot otb ground truth
+    SHOW_OTB_GT = True
+
+else:
+    SHOW_OTB_GT = False
+
 
 
 #Frames till next optical flow point refresh
@@ -35,7 +47,7 @@ OF_DET_SKIP = 4
 ALWAYS_REDRAW_Redetect = False
 
 #frames till next yolo call 
-YOLO_DET_SKIP = 10
+YOLO_DET_SKIP = 20
 
 #PRint and plot framerate
 PRINT_FRAMERATE = False
@@ -98,9 +110,9 @@ lk_params = dict( winSize  = (15 ,15),
 ###MODELS##
 
 #yolov4
-#configPath = "./cfg/yolov4.cfg"
-#weightPath = "./weights/yolov4.weights"
-#metaPath = "./cfg/coco.data"
+configPath = "./cfg/yolov4.cfg"
+weightPath = "./weights/yolov4.weights"
+metaPath = "./cfg/coco.data"
 
 #yolov3
 #configPath = "./cfg/yolov3.cfg"
@@ -108,9 +120,9 @@ lk_params = dict( winSize  = (15 ,15),
 #metaPath = "./cfg/coco.data"
 
 #yolov2 tiny
-configPath = "./cfg/yolov2-tiny.cfg"
-weightPath = "./weights/yolov2-tiny.weights"
-metaPath = "./cfg/coco.data"
+#configPath = "./cfg/yolov2-tiny.cfg"
+#weightPath = "./weights/yolov2-tiny.weights"
+#metaPath = "./cfg/coco.data"
 
 #yolov3 tiny
 #configPath = "./cfg/yolov3-tiny.cfg"
@@ -159,6 +171,14 @@ def convertBack(x, y, w, h):
     ymin = int(round(y - (h / 2)))
     ymax = int(round(y + (h / 2)))
     return xmin, ymin, xmax, ymax
+    
+#otb data format is x,y,w,h where (x,y) is the top left
+def convertBackOTB(x, y, w, h):
+    xmin = int(round(x))
+    xmax = int(round(x + (w)))
+    ymin = int(round(y))
+    ymax = int(round(y + (h)))
+    return xmin, ymin, xmax, ymax
 
 #This function will draw boxes. It is now interchangable with cvDrawBoxes
 def cvDrawBoxesFromMVList(detections, img, COLOR):
@@ -193,6 +213,27 @@ def cvDrawBoxes(detections, img, COLOR):
             detection[2][2],\
             detection[2][3]
         xmin, ymin, xmax, ymax = convertBack(
+            float(x), float(y), float(w), float(h))
+        pt1 = (xmin, ymin)
+        pt2 = (xmax, ymax)
+        cv2.rectangle(img, pt1, pt2, (red,green,blue), 1)
+    #    cv2.putText(img,
+    #                detection[0].decode() +
+    #                " [" + str(round(detection[1] * 100, 2)) + "]",
+    #                (pt1[0], pt1[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+    #                [red,green,blue], 2)
+    return img
+    
+#Exsiting function from darknet
+#This function draws boxes on the frame where detections are
+def cvDrawBoxesOTB(detections, img, COLOR):
+    red,green,blue = COLOR
+    for detection in detections:
+        x, y, w, h = detection[2][0],\
+            detection[2][1],\
+            detection[2][2],\
+            detection[2][3]
+        xmin, ymin, xmax, ymax = convertBackOTB(
             float(x), float(y), float(w), float(h))
         pt1 = (xmin, ymin)
         pt2 = (xmax, ymax)
@@ -588,6 +629,13 @@ def YOLO():
 #    cap = cv2.VideoCapture("test.mp4")
     cap = cv2.VideoCapture(path)
     
+    if(USE_OTB):
+        
+        otb_width  = cap.get(3) 
+        otb_height = cap.get(4) 
+        otb_x_scale = ( darknet.network_width(netMain) / otb_width)
+        otb_y_scale = ( darknet.network_height(netMain) / otb_height )
+    
     cap.set(3, darknet.network_width(netMain))
     cap.set(4, darknet.network_height(netMain))
     #cap.set(3, 1280)
@@ -613,6 +661,11 @@ def YOLO():
     
     #get frame
     ret, frame_read = cap.read()
+    if(SHOW_OTB_GT):
+        otb_file = open(otb_gt_file)
+        otb_file.readline()
+        
+    
     #resize to darknet preference
     frame_read = cv2.resize(frame_read, (darknet.network_width(netMain),
                                     darknet.network_height(netMain)), interpolation=cv2.INTER_LINEAR)
@@ -640,8 +693,13 @@ def YOLO():
     frameRateArr = []
     loopsArr = []
     
+    #otb gt list
+    gtList = []
     #Run for 100 frames of video
     breakAt = 1000
+    
+    
+        
     
     #While the video is open
     while cap.isOpened():
@@ -750,6 +808,38 @@ def YOLO():
             pass
 ###################################################################################################################
         
+        
+        
+        
+        
+        
+        ##########################################
+        ## OTB STUFF ##
+        
+        if(SHOW_OTB_GT):
+            readIn = otb_file.readline()
+            
+            readIn = readIn.split()
+        
+            x_gt = int(readIn[0])
+            y_gt = int(readIn[1])
+            w_gt = int(readIn[2])
+            h_gt = int(readIn[3])
+
+            x_gt = int( round(otb_x_scale*x_gt))
+            w_gt = int( round(otb_x_scale*w_gt))
+            
+            y_gt = int( round(otb_y_scale*y_gt))
+            h_gt = int( round(otb_y_scale*h_gt))
+            
+            gt_box = ("", 0, (x_gt, y_gt, w_gt, h_gt))
+
+            gtList.append(gt_box)
+
+            COLOR = (255,32,64)
+            
+            image = cvDrawBoxesOTB(gtList, image,COLOR)
+            gtList.clear()
         ##########################################
         
         
@@ -803,7 +893,7 @@ def YOLO():
         
         
 ##################################################################################################################################
-
+        
         #Do map testing down here, possibly
         
         
