@@ -21,7 +21,7 @@ path = "./data/test.mp4"
 ####################################################################
 
 #USE OTB DATA
-USE_OTB = True
+USE_OTB = False
 #path = ".\data\OTB_data\stationary\Crossing\otb_crossing.avi"
 #path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
 if(USE_OTB):
@@ -47,7 +47,7 @@ OF_DET_SKIP = 4
 ALWAYS_REDRAW_Redetect = False
 
 #frames till next yolo call 
-YOLO_DET_SKIP = 20
+YOLO_DET_SKIP = 10
 
 #PRint and plot framerate
 PRINT_FRAMERATE = False
@@ -110,9 +110,9 @@ lk_params = dict( winSize  = (15 ,15),
 ###MODELS##
 
 #yolov4
-configPath = "./cfg/yolov4.cfg"
-weightPath = "./weights/yolov4.weights"
-metaPath = "./cfg/coco.data"
+#configPath = "./cfg/yolov4.cfg"
+#weightPath = "./weights/yolov4.weights"
+#metaPath = "./cfg/coco.data"
 
 #yolov3
 #configPath = "./cfg/yolov3.cfg"
@@ -120,9 +120,9 @@ metaPath = "./cfg/coco.data"
 #metaPath = "./cfg/coco.data"
 
 #yolov2 tiny
-#configPath = "./cfg/yolov2-tiny.cfg"
-#weightPath = "./weights/yolov2-tiny.weights"
-#metaPath = "./cfg/coco.data"
+configPath = "./cfg/yolov2-tiny.cfg"
+weightPath = "./weights/yolov2-tiny.weights"
+metaPath = "./cfg/coco.data"
 
 #yolov3 tiny
 #configPath = "./cfg/yolov3-tiny.cfg"
