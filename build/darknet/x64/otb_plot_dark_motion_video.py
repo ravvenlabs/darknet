@@ -21,21 +21,68 @@ path = "./data/test.mp4"
 ####################################################################
 
 #USE OTB DATA
-USE_OTB = False
-#path = ".\data\OTB_data\stationary\Crossing\otb_crossing.avi"
-#path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
-if(USE_OTB):
-    path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
-    #path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
+USE_OTB = True
 
-    otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
+        
+if(USE_OTB):
+    path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
+    otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
+    
+    #path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
+    #otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
+    
+    
+    #path = ".\data\OTB_data\stationary\Crossing\otb_crossing.avi"
+    #otb_gt_file = ".\data\OTB_data\stationary\Crossing\groundtruth_rect.txt"
+    
+    #path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
+    #otb_gt_file = ".\data\OTB_data\stationary\Subway\groundtruth_rect.txt"
+    
+    
+
+    OTB_DETECT_PEOPLE_ONLY = True
 
     #WHEN USING! make sure the path is to an otb data folder as well
 
     #plot otb ground truth
-    SHOW_OTB_GT = True
+    SHOW_OTB_GT = False
     
     
+    #calulate and store metrics for precision and success plots
+    CALC_OTB_METRICS_STORE = True
+    OTB_OUT_PRECISION_SUFFIX = "otb_prec_plot.txt"
+    OTB_OUT_SUCCESS_SUFFIX = "otb_succes_plot.txt"
+    
+   
+    
+    #0 to 100
+    SUCCESS_THRESH = 0
+    
+    str_suc = str(SUCCESS_THRESH)
+    
+    
+    
+    
+    #0 to 50
+    PIXEL_DIST_THRESH = 0
+    #PIXEL_DIST_THRESH = pix_dist_thing
+    
+    #Success is %of detections where IOU is over threshold from 0 to 100%
+    
+    #precision is % of detections where centroid is within *threshold* number of pixels of gt
+
+    OTB_FOLDER= ".\OTB_OUT\\"
+
+    SUCCESS_FILE = OTB_FOLDER + str(SUCCESS_THRESH)+OTB_OUT_SUCCESS_SUFFIX
+    
+    PIXEL_DIST_FILE = OTB_FOLDER + str(PIXEL_DIST_THRESH)+OTB_OUT_PRECISION_SUFFIX
+    
+    success_fptr = open(SUCCESS_FILE, "w")
+    
+    prec_fptr = open(PIXEL_DIST_FILE, "w")
+    
+    
+#    pdb.set_trace()
 
 else:
     SHOW_OTB_GT = False
@@ -143,7 +190,7 @@ metaPath = "./cfg/coco.data"
 #####################################################################
 
 
-loops = 0
+frame = 0
 # ####################
 
 #This function just detects where the file is being run from and adjusts paths to hit required folders 
@@ -182,28 +229,6 @@ def convertBackOTB(x, y, w, h):
     ymax = int(round(y + (h)))
     return xmin, ymin, xmax, ymax
 
-#This function will draw boxes. It is now interchangable with cvDrawBoxes
-def cvDrawBoxesFromMVList(detections, img, COLOR):
-    red,green,blue = COLOR
-    for detection in detections:
-        
-        #throw, detection, out = detection 
-    
-        x, y, w, h = detection[2][0],\
-            detection[2][1],\
-            detection[2][2],\
-            detection[2][3]
-        xmin, ymin, xmax, ymax = convertBack(
-            float(x), float(y), float(w), float(h))
-        pt1 = (xmin, ymin)
-        pt2 = (xmax, ymax)
-        cv2.rectangle(img, pt1, pt2, (red,green,blue), 1)
-        #cv2.putText(img,
-        #            detection[0].decode() +
-        #            " [" + str(round(detection[1] * 100, 2)) + "]",
-        #            (pt1[0], pt1[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-        #            [red,green,blue], 2)
-    return img
 
 #Exsiting function from darknet
 #This function draws boxes on the frame where detections are
@@ -219,11 +244,11 @@ def cvDrawBoxes(detections, img, COLOR):
         pt1 = (xmin, ymin)
         pt2 = (xmax, ymax)
         cv2.rectangle(img, pt1, pt2, (red,green,blue), 1)
-    #    cv2.putText(img,
-    #                detection[0].decode() +
-    #                " [" + str(round(detection[1] * 100, 2)) + "]",
-    #                (pt1[0], pt1[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-    #                [red,green,blue], 2)
+        #cv2.putText(img,
+        #            detection[0].decode() +
+        #            " [" + str(round(detection[1] * 100, 2)) + "]",
+        #            (pt1[0], pt1[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+        #            [red,green,blue], 2)
     return img
     
 #Exsiting function from darknet
@@ -253,7 +278,7 @@ metaMain = None
 altNames = None
 
 #This will just draw one box in a list. It is for debugging without too much clutter
-def cvDrawOneBox(detection, img, COLOR):
+def cvDrawOneBox(detection, img, COLOR, otb_draw=False):
 
     red,green,blue = COLOR
 
@@ -262,8 +287,10 @@ def cvDrawOneBox(detection, img, COLOR):
         detection[2][1],\
         detection[2][2],\
         detection[2][3]
-    xmin, ymin, xmax, ymax = convertBack(
-        float(x), float(y), float(w), float(h))
+    if(otb_draw):        
+        xmin, ymin, xmax, ymax = convertBackOTB(float(x), float(y), float(w), float(h))
+    else:
+        xmin, ymin, xmax, ymax = convertBack(float(x), float(y), float(w), float(h))
     pt1 = (xmin, ymin)
     pt2 = (xmax, ymax)
     cv2.rectangle(img, pt1, pt2, (red, green, blue), 2)
@@ -496,7 +523,7 @@ def MatchMVboxToYoloNew(detections, mvBoxes, dbgimg=None):
         #    pdb.set_trace()
             
             #Add matched pair to return list
-            mvBoxesWithYoloID.append((mvbox, candidate[least][0]))
+            mvBoxesWithYoloID.append((candidate[least][0], mvbox))
             candidate.clear()
 
     if(dbgimg is None):
@@ -563,10 +590,14 @@ def cvDrawLinkCenter(mv,yolo, image):
 
 #This function will go through a list of pairs and draw the connecting line.
 #It will also show the paired boxes in different colors for easy inspection of pairing
-def DrawMatchesDiffColors(matches, detections, image):
+def DrawMatchesDiffColors(matches, detections, image, otb_draw=False):
+    #cnt=0
+    
     for match in matches:
-        mvbox, yolo_box = match
-        
+        box1, box2 = match
+        #cnt+=1
+        #if(cnt>1):
+        #    pdb.set_trace()
         #COLOR = (0,255,255)
         
         ColorList = list(np.random.choice(range(106), size=3)+100)
@@ -578,13 +609,18 @@ def DrawMatchesDiffColors(matches, detections, image):
         
         #COLOR2 = (COLOR[0]+50, COLOR[1]+50, COLOR[2]+50)
 #       
-        image = cvDrawLinkCenter(mvbox,yolo_box, image)
+        image = cvDrawLinkCenter(box1,box2, image)
 
  #       pdb.set_trace()
         
- 
-        #image = cvDrawOneBox(mvbox, image, COLOR)
-        #image = cvDrawOneBox(yolo_box, image, COLOR)
+        #if useotb is true, box one is otb
+        if(otb_draw):
+            image = cvDrawOneBox(box1, image, COLOR, otb_draw=True)
+            #image = cvDrawBoxesOTB([box1], image,COLOR)
+        else:
+            image = cvDrawOneBox(box1, image, COLOR)
+            
+        image = cvDrawOneBox(box2, image, COLOR)
         
     return image
 
@@ -663,7 +699,7 @@ def YOLO():
     
     #get frame
     ret, frame_read = cap.read()
-    if(SHOW_OTB_GT):
+    if(USE_OTB):
         otb_file = open(otb_gt_file)
         otb_file.readline()
         
@@ -680,7 +716,7 @@ def YOLO():
     mask = np.zeros_like(frame_read)
     
     #init some variables for the loop
-    loops=0
+    frame=0
     frame_read= None
     MVBoxes = None
     dbgFrame = None
@@ -696,7 +732,7 @@ def YOLO():
     loopsArr = []
     
     #otb gt list
-    gtList = []
+    otblist = []
     #Run for 100 frames of video
     breakAt = 1000
     
@@ -706,13 +742,13 @@ def YOLO():
     #While the video is open
     while cap.isOpened():
         addedToFrame = False
-        loops=loops+1
-        loopsArr.append(loops)
+        frame=frame+1
+        loopsArr.append(frame)
         if(SLOW_MODE):
             time.sleep(0.05)
         
         #every 10 start with new mask
-        if(loops%OF_DET_SKIP==0):
+        if(frame%OF_DET_SKIP==0):
             #Every 10 frames readjust
             # Take first frame and find corners in it
             ret, old_frame = ret, frame_read
@@ -726,6 +762,10 @@ def YOLO():
             
         prev_time = time.time()
         ret, frame_read = cap.read()
+        
+        if(not ret):
+            break
+        
         frame_read = cv2.resize(frame_read, (darknet.network_width(netMain),
                                     darknet.network_height(netMain)), interpolation=cv2.INTER_LINEAR)
         frame_rgb = cv2.cvtColor(frame_read, cv2.COLOR_BGR2RGB)
@@ -772,12 +812,31 @@ def YOLO():
         darknet.copy_image_from_bytes(darknet_image,frame_resized.tobytes())
           
         #If it is time to redetect with darknet
-        if(loops%YOLO_DET_SKIP==0 or detections is None or ALWAYS_REDRAW_Redetect):
+        if(frame%YOLO_DET_SKIP==0 or detections is None or ALWAYS_REDRAW_Redetect):
         
             #PErform darknet detection
             #IT WAS: thresh=0.25
             detections = darknet.detect_image(netMain, metaMain, darknet_image, thresh=YOLO_DET_THRESH, hier_thresh=HI_THRESH, nms=NMS)
-            
+           # pdb.set_trace()
+            if(USE_OTB):
+                if(OTB_DETECT_PEOPLE_ONLY):
+                    
+                    pop_tracker = 0
+                    
+                    det_len = len(detections)
+                    
+                    for detection in range(0, det_len):
+                        #if it isa not a person
+    #                    print(detections[0][0].decode())
+                        if(not detections[pop_tracker][0].decode() == 'person'):
+                            
+                            detections.pop(pop_tracker)
+                            pop_tracker-=1
+                        pop_tracker+=1
+                        
+                    #pdb.set_trace()
+                    
+                    #print(detections)
        
         COLOR = (0,255,0)
         
@@ -790,7 +849,7 @@ def YOLO():
 ###################################################################################################################
 
         #If boxes were redetected, copy them to mvboxes
-        if(loops%YOLO_DET_SKIP==0 or MVBoxes is None):
+        if(frame%YOLO_DET_SKIP==0 or MVBoxes is None):
             MVBoxes =  AssocDetections(detections)
             #sys.stdout.write("MVBoxes assigned\n")
         #else, update them with motion vectors
@@ -818,32 +877,71 @@ def YOLO():
         ##########################################
         ## OTB STUFF ##
         
-        if(SHOW_OTB_GT):
-            readIn = otb_file.readline()
-            
-            readIn = readIn.split()
         
+        #OTB SINGLE LINE GT LOAD
+        if(USE_OTB):
+            #Load in OTB data
+            readIn = otb_file.readline()
+            readIn = readIn.split()
+            
+            #Get params
             x_gt = int(readIn[0])
             y_gt = int(readIn[1])
             w_gt = int(readIn[2])
             h_gt = int(readIn[3])
-
+            
+            #scale box
             x_gt = int( round(otb_x_scale*x_gt))
             w_gt = int( round(otb_x_scale*w_gt))
-            
             y_gt = int( round(otb_y_scale*y_gt))
             h_gt = int( round(otb_y_scale*h_gt))
             
-            gt_box = ("", 0, (x_gt, y_gt, w_gt, h_gt))
-
-            gtList.append(gt_box)
-
-            COLOR = (255,32,64)
+            #Convert to normal representation
+            x_gt = int(round(x_gt + w_gt/2))
+            y_gt = int(round(y_gt + h_gt/2))
             
-            image = cvDrawBoxesOTB(gtList, image,COLOR)
-            gtList.clear()
-        ##########################################
+            gt_box = ("", 0, (x_gt, y_gt, w_gt, h_gt))
+            otblist.append(gt_box)
+
+#           MVBOX EVAL            
+            matches= MatchMVboxToYoloNew(MVBoxes, otblist)
+            
+#           YOLO EVAL
+            #matches= MatchMVboxToYoloNew(detections,otblist)
+            #pdb.set_trace()
+            
+            ## With match to ground truth, do stuff
+            
+            image = DrawMatchesDiffColors(matches, detections, image, otb_draw=False)
         
+            center_dist = -1
+            iou_value = -1.01
+        
+            #FOR frame
+            
+            #Calulate IOU
+                #= IOU_CALC(matches)
+            #Calculate centroid distance
+            distanceList, garbage = CalcDistances(matches)
+            
+            
+            
+            if(len(distanceList)>0):
+                center_dist = distanceList[0]
+                print(center_dist)
+            
+            #Write reults to file
+            success_fptr.write( '%d %f \n' % (frame, iou_value))
+            prec_fptr.write(    '%d %f \n' % (frame, center_dist))
+            #pdb.set_trace()
+        
+        if(SHOW_OTB_GT):
+            
+            COLOR = (255,32,64)
+            image = cvDrawBoxesOTB(otblist, image,COLOR)
+            
+        ##########################################
+        otblist.clear()
         
     #Calculate center drift between detections and MVboxes
         #pdb.set_trace()
@@ -906,7 +1004,7 @@ def YOLO():
         if(cv2.waitKey(3) & 0xFF == ord('q')):
             break
             
-        if(loops > breakAt and ( CALC_MV_YOLO_CENTER_DRIFT or PRINT_FRAMERATE)):
+        if(frame > breakAt and ( CALC_MV_YOLO_CENTER_DRIFT or PRINT_FRAMERATE)):
             break
     
     #plot center drift values
@@ -921,6 +1019,10 @@ def YOLO():
         plt.legend()
         plt.show()
     
+    success_fptr.close()
+    
+    prec_fptr.close()
+
     #release memory
     cap.release()
     out.release()
