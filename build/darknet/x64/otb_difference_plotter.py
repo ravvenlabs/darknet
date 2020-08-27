@@ -27,8 +27,12 @@ path = "./data/test.mp4"
 
 ####################################################################
 
+AllDetections = []
 
+AllMVBoxes = []
 
+AllMatchedBoxes = []
+FrameCumulativeDrift = []
 #USE OTB DATA
 
 
@@ -51,11 +55,12 @@ if(USE_OTB):
     #path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Subway\groundtruth_rect.txt"
     
-   
+    PLOT_AND_COMPARE_CENTERS = True
+
     OTB_DETECT_PEOPLE_ONLY = True
-    
+
     #WHEN USING! make sure the path is to an otb data folder as well
-    
+
     #plot otb ground truth
     SHOW_OTB_GT = False
     
@@ -105,7 +110,7 @@ else:
 OF_DET_SKIP = 4
 
 #Force darknet to predict and redraw every frame
-ALWAYS_REDRAW_Redetect = False
+ALWAYS_REDRAW_Redetect = True
 
 #frames till next yolo call 
 YOLO_DET_SKIP = 10
@@ -149,7 +154,7 @@ CV_LINES_ON = False
 DetectionPoints = 250
 
 #draw yolo bboxes (every frame green)
-drawYOLO = True
+drawYOLO = False
 
 #Draw motion-vector-propelled boxes
 Draw_MV_BOXES = True
@@ -171,14 +176,14 @@ lk_params = dict( winSize  = (15 ,15),
 ###MODELS##
 
 #yolov4
-configPath = "./cfg/yolov4.cfg"
-weightPath = "./weights/yolov4.weights"
-metaPath = "./cfg/coco.data"
+#configPath = "./cfg/yolov4.cfg"
+#weightPath = "./weights/yolov4.weights"
+#metaPath = "./cfg/coco.data"
 
 #yolov3
-#configPath = "./cfg/yolov3.cfg"
-#weightPath = "./weights/yolov3.weights"
-#metaPath = "./cfg/coco.data"
+configPath = "./cfg/yolov3.cfg"
+weightPath = "./weights/yolov3.weights"
+metaPath = "./cfg/coco.data"
 
 #yolov2 tiny
 #configPath = "./cfg/yolov2-tiny.cfg"
@@ -261,6 +266,35 @@ def cvDrawBoxes(detections, img, COLOR):
         #            " [" + str(round(detection[1] * 100, 2)) + "]",
         #            (pt1[0], pt1[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
         #            [red,green,blue], 2)
+    return img
+    
+def cvDrawCenters(frameList, img, COLOR):
+    red,green,blue = COLOR
+    
+    for detections in frameList:
+        
+        for detection in detections:
+            
+
+
+            x, y, w, h = detection[2][0],\
+                detection[2][1],\
+                detection[2][2],\
+                detection[2][3]
+            xmin, ymin, xmax, ymax = convertBack(
+                float(x), float(y), float(w), float(h))
+            
+            pt1 = (int(round(x)), int(round(y)))
+            
+            cv2.circle(img,pt1,1,COLOR,-1)
+
+            
+            #cv2.rectangle(img, pt1, pt2, (red,green,blue), 1)
+            #cv2.putText(img,
+            #            detection[0].decode() +
+            #            " [" + str(round(detection[1] * 100, 2)) + "]",
+            #            (pt1[0], pt1[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+            #            [red,green,blue], 2)
     return img
     
 #Exsiting function from darknet
@@ -601,7 +635,7 @@ def cvDrawLinkCenter(mv,yolo, image):
 
 #This function will go through a list of pairs and draw the connecting line.
 #It will also show the paired boxes in different colors for easy inspection of pairing
-def DrawMatchesDiffColors(matches, detections, image, otb_draw=False):
+def DrawMatchesDiffColors(matches, detections, image, link_only=False):
     #cnt=0
     
     for match in matches:
@@ -625,13 +659,10 @@ def DrawMatchesDiffColors(matches, detections, image, otb_draw=False):
  #       pdb.set_trace()
         
         #if useotb is true, box one is otb
-        if(otb_draw):
-            image = cvDrawOneBox(box1, image, COLOR, otb_draw=True)
-            #image = cvDrawBoxesOTB([box1], image,COLOR)
-        else:
+        if(not link_only):
             image = cvDrawOneBox(box1, image, COLOR)
             
-        image = cvDrawOneBox(box2, image, COLOR)
+            image = cvDrawOneBox(box2, image, COLOR)
         
     return image
 
@@ -780,6 +811,8 @@ def YOLO():
         #Video failed to return another frame
         if(not ret):
             break
+            
+        
         
         #resize the frame for darknet
         frame_read = cv2.resize(frame_read, (darknet.network_width(netMain),
@@ -856,8 +889,19 @@ def YOLO():
        
         COLOR = (0,255,0)
         
-        if(drawYOLO):
+        if(drawYOLO and not PLOT_AND_COMPARE_CENTERS):
             image = cvDrawBoxes(detections, image,COLOR)
+        
+        if(PLOT_AND_COMPARE_CENTERS):
+            
+            
+            #for el in detections:
+            AllDetections.append(detections.copy())
+
+            
+            image = cvDrawCenters(AllDetections, image,COLOR)
+        
+        
         
         
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -878,7 +922,7 @@ def YOLO():
         #pdb.set_trace()
         
         #Draw the mv boxes on screen in red
-        if(Draw_MV_BOXES):
+        if(Draw_MV_BOXES and not PLOT_AND_COMPARE_CENTERS):
             if(dbgFrame is None):
                 image = cvDrawBoxes(MVBoxes, image,COLOR)
             
@@ -886,8 +930,37 @@ def YOLO():
                 image = cvDrawBoxes(MVBoxes, dbgFrame,COLOR)
         else:
             pass
+        
+        if(PLOT_AND_COMPARE_CENTERS):
+            #for el in MVBoxes:
+            AllMVBoxes.append(MVBoxes.copy())
+         
+            
+            image = cvDrawCenters(AllMVBoxes, image,COLOR)
+        
 ###################################################################################################################
         
+        
+        if(PLOT_AND_COMPARE_CENTERS):
+        
+            #Add this frames matched points to list
+            AllMatchedBoxes.append(MatchMVboxToYoloNew(AllMVBoxes[frame-1], AllDetections[frame-1]))
+            
+            
+            FrameDistances, garbage = CalcDistances(AllMatchedBoxes[frame-1])
+            
+            
+            numDetections = len(AllMVBoxes[frame-1])
+            
+            AverageDist = sum(FrameDistances)/numDetections
+            #print(numDetections)
+            
+            #Add this frames distances to distance list
+            FrameCumulativeDrift.append(AverageDist)
+            
+            #for matchList in AllMatchedBoxes:
+            #    DrawMatchesDiffColors(matchList, None, image,link_only=True)
+                
         
         ##########################################
         ## OTB STUFF ##
@@ -928,9 +1001,11 @@ def YOLO():
             
             ## Now, with match to ground truth, do stuff
             
-            #This will just show you the matches visually
-            image = DrawMatchesDiffColors(matches, detections, image, otb_draw=False)
-        
+            if(not PLOT_AND_COMPARE_CENTERS):
+            
+                #This will just show you the matches visually
+                image = DrawMatchesDiffColors(matches, detections, image)
+            
             #Default vals
             center_dist = -1
             iou_value = -1.01
@@ -1029,12 +1104,26 @@ def YOLO():
     
     #plot center drift values
     if (CALC_MV_YOLO_CENTER_DRIFT):
-        plt.plot(loopsArr, driftArr, label='Drift Values')
+        del loopsArr[-1]
+        plt.plot(loopsArr, driftArr, label='Drift Calculation Values')
     #    plt.legend()
+        plt.show()
+        
+    #plot center drift values
+    if (PLOT_AND_COMPARE_CENTERS):
+        del loopsArr[-1]
+        
+        AvgTotalDist = sum(FrameCumulativeDrift)/len(loopsArr)
+        
+        plt.plot([0, loopsArr[-1]], [AvgTotalDist, AvgTotalDist], 'k-', color = 'r', linewidth=4)
+        
+        plt.plot(loopsArr, FrameCumulativeDrift)
+        plt.title('Average Pixel Distance From Matched Center Values')
         plt.show()
     
     #plot framerate values
     if (PRINT_FRAMERATE):
+        del loopsArr[-1]
         plt.plot(loopsArr, frameRateArr, label='Framerate Values')
         plt.legend()
         plt.show()

@@ -1,1 +1,1 @@
-C:\ProgramData\Anaconda3\Scripts\activate base
+%ANACONDA_3_SCRIPTS%\activate base
