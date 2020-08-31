@@ -39,9 +39,11 @@ FrameCumulativeDrift = []
 
 #Using OTB will cuase the program to read in OTB data which is a CV benchmark set
 USE_OTB = True
-
+PLOT_AND_COMPARE_CENTERS = True
         
 if(USE_OTB):
+    
+    OTB_GT_FIX_TIME = True
     path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
     otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
     
@@ -113,10 +115,10 @@ OF_DET_SKIP = 4
 ALWAYS_REDRAW_Redetect = True
 
 #frames till next yolo call 
-YOLO_DET_SKIP = 10
+YOLO_DET_SKIP = 20
 
 #PRint and plot framerate
-PRINT_FRAMERATE = False
+PRINT_FRAMERATE = True
 
 #Rectangles for box movement and crosshairs on MV in said rectangle (And print locations of each)
 DEBUG_OBJECTS = False
@@ -746,7 +748,13 @@ def YOLO():
         otb_file = open(otb_gt_file)
         otb_file.readline()
         
+    #Get rid of the camera timer that messes up optical flow
+    if(OTB_GT_FIX_TIME):
     
+        pt1 = (0,0)
+        pt2 = (220,15)
+        frame_read = cv2.rectangle(frame_read, pt1, pt2, (0,0,0), -10)
+        
     #resize to darknet preference
     frame_read = cv2.resize(frame_read, (darknet.network_width(netMain),
                                     darknet.network_height(netMain)), interpolation=cv2.INTER_LINEAR)
@@ -779,7 +787,7 @@ def YOLO():
     otblist = []
     
     #Run for x frames of video. This is for plot consistency in videos
-    breakAt = 1000
+    breakAt = 100
     
     
     #While the video is open
@@ -812,7 +820,16 @@ def YOLO():
         if(not ret):
             break
             
+        #Get rid of the camera timer that messes up optical flow
+        if(OTB_GT_FIX_TIME):
         
+            pt1 = (0,0)
+            pt2 = (220,15)
+            frame_read = cv2.rectangle(frame_read, pt1, pt2, (0,0,0), -10)
+            
+        if(frame > breakAt and ( CALC_MV_YOLO_CENTER_DRIFT or PRINT_FRAMERATE)):
+            break
+    
         
         #resize the frame for darknet
         frame_read = cv2.resize(frame_read, (darknet.network_width(netMain),
@@ -1099,9 +1116,7 @@ def YOLO():
         if(cv2.waitKey(3) & 0xFF == ord('q')):
             break
             
-        if(frame > breakAt and ( CALC_MV_YOLO_CENTER_DRIFT or PRINT_FRAMERATE)):
-            break
-    
+        
     #plot center drift values
     if (CALC_MV_YOLO_CENTER_DRIFT):
         del loopsArr[-1]
@@ -1119,11 +1134,21 @@ def YOLO():
         
         plt.plot(loopsArr, FrameCumulativeDrift)
         plt.title('Average Pixel Distance From Matched Center Values')
+        
+        plt.xlabel('Current Frame')
+        plt.ylabel('Pixel Distance')
+    #    plt.legend()
+        plt.title("Average Per-Box Centroid Drift Chart")
         plt.show()
     
     #plot framerate values
     if (PRINT_FRAMERATE):
-        del loopsArr[-1]
+        
+        if(len(loopsArr) != len(frameRateArr)):
+            print("Adjust array lengths")
+            del loopsArr[-1]
+        
+        
         plt.plot(loopsArr, frameRateArr, label='Framerate Values')
         plt.legend()
         plt.show()

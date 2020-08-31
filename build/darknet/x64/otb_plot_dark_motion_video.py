@@ -38,6 +38,8 @@ USE_OTB = True
 
         
 if(USE_OTB):
+
+    OTB_GT_FIX_TIME = True
     path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
     otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
     
@@ -61,38 +63,36 @@ if(USE_OTB):
     
     
     #calulate and store metrics for precision and success plots
-    CALC_OTB_METRICS_STORE = True
-    OTB_OUT_PRECISION_SUFFIX = "otb_prec_plot.txt"
-    OTB_OUT_SUCCESS_SUFFIX = "otb_succes_plot.txt"
-    
-   
-    
-    #0 to 100
-    SUCCESS_THRESH = 0
-    
-    str_suc = str(SUCCESS_THRESH)
-    
-    
-    
-    
-    #0 to 50
-    PIXEL_DIST_THRESH = 0
-    #PIXEL_DIST_THRESH = pix_dist_thing
-    
-    #Success is %of detections where IOU is over threshold from 0 to 100%
-    
-    #precision is % of detections where centroid is within *threshold* number of pixels of gt
+    CALC_OTB_METRICS_STORE = False
+    if(CALC_OTB_METRICS_STORE):
+        OTB_OUT_PRECISION_SUFFIX = "otb_prec_plot.txt"
+        OTB_OUT_SUCCESS_SUFFIX = "otb_succes_plot.txt"
+        
+       
+        
+        #0 to 100
+        SUCCESS_THRESH = 0
+        
+        str_suc = str(SUCCESS_THRESH)
+        
+        #0 to 50
+        PIXEL_DIST_THRESH = 0
+        #PIXEL_DIST_THRESH = pix_dist_thing
+        
+        #Success is %of detections where IOU is over threshold from 0 to 100%
+        
+        #precision is % of detections where centroid is within *threshold* number of pixels of gt
 
-    OTB_FOLDER= ".\OTB_OUT\\"
+        OTB_FOLDER= ".\OTB_OUT\\"
 
-    SUCCESS_FILE = OTB_FOLDER + str(SUCCESS_THRESH)+OTB_OUT_SUCCESS_SUFFIX
-    
-    PIXEL_DIST_FILE = OTB_FOLDER + str(PIXEL_DIST_THRESH)+OTB_OUT_PRECISION_SUFFIX
-    
-    success_fptr = open(SUCCESS_FILE, "w")
-    
-    prec_fptr = open(PIXEL_DIST_FILE, "w")
-    
+        SUCCESS_FILE = OTB_FOLDER + str(SUCCESS_THRESH)+OTB_OUT_SUCCESS_SUFFIX
+        
+        PIXEL_DIST_FILE = OTB_FOLDER + str(PIXEL_DIST_THRESH)+OTB_OUT_PRECISION_SUFFIX
+        
+        success_fptr = open(SUCCESS_FILE, "w")
+        
+        prec_fptr = open(PIXEL_DIST_FILE, "w")
+        
     
 #    pdb.set_trace()
 
@@ -108,10 +108,13 @@ OF_DET_SKIP = 4
 ALWAYS_REDRAW_Redetect = False
 
 #frames till next yolo call 
-YOLO_DET_SKIP = 10
+YOLO_DET_SKIP = 60
 
 #PRint and plot framerate
 PRINT_FRAMERATE = False
+
+#Calulate the Centroid drift
+CALC_MV_YOLO_CENTER_DRIFT = True
 
 #Rectangles for box movement and crosshairs on MV in said rectangle (And print locations of each)
 DEBUG_OBJECTS = False
@@ -154,8 +157,7 @@ drawYOLO = True
 #Draw motion-vector-propelled boxes
 Draw_MV_BOXES = True
 
-#Calulate the Centroid drift
-CALC_MV_YOLO_CENTER_DRIFT = False
+
 
 # params for ShiTomasi corner detection
 feature_params = dict( maxCorners = DetectionPoints,
@@ -586,6 +588,32 @@ def CalcDistances(matches):
     
     return distList, totalDriftAmount
 
+#Calculate the IOU scores
+def CalculateIOUs(matches):
+    
+    iouList = []
+    
+    for match in matches:
+        box1, box2 = match
+        
+        name_b1, detsProb_b1, (x_b1,y_b1,w_b1,h_b1) = box1
+        
+        name_b2, detsProb_b2, (x_b2,y_b2,w_b2,h_b2) = box2
+    
+        w_intersection = min(x_b1 + w_b1/2, x_b2 + w_b2/2) - max(x_b1- (w_b1/2), x_b2- (w_b2/2))
+        
+        h_intersection = min(y_b1 + h_b1/2, y_b2 + h_b2/2) - max(y_b1 - (h_b1/2), y_b2 - (h_b2/2))
+        
+        if w_intersection <= 0 or h_intersection <= 0: # No overlap
+            iouList.append(0)
+            
+        intersect = w_intersection * h_intersection
+
+        Union = w_b1 * h_b1 + w_b2 * h_b2 - intersect
+        
+        iouList.append(intersect/Union)
+
+    return iouList
 
 #This function draws a white line between 2 boxes
 def cvDrawLinkCenter(mv,yolo, image):
@@ -714,6 +742,13 @@ def YOLO():
     if(USE_OTB):
         otb_file = open(otb_gt_file)
         otb_file.readline()
+
+    #Get rid of the camera timer that messes up optical flow
+    if(OTB_GT_FIX_TIME):
+    
+        pt1 = (0,0)
+        pt2 = (220,15)
+        frame_read = cv2.rectangle(frame_read, pt1, pt2, (0,0,0), -10)
         
     
     #resize to darknet preference
@@ -777,9 +812,18 @@ def YOLO():
         prev_time = time.time()
         ret, frame_read = cap.read()
         
+        
+        
         #Video failed to return another frame
         if(not ret):
             break
+        
+        #Get rid of the camera timer that messes up optical flow
+        if(OTB_GT_FIX_TIME):
+    
+            pt1 = (0,0)
+            pt2 = (220,15)
+            frame_read = cv2.rectangle(frame_read, pt1, pt2, (0,0,0), -10)
         
         #resize the frame for darknet
         frame_read = cv2.resize(frame_read, (darknet.network_width(netMain),
@@ -928,33 +972,64 @@ def YOLO():
             
             ## Now, with match to ground truth, do stuff
             
-            #This will just show you the matches visually
-            image = DrawMatchesDiffColors(matches, detections, image, otb_draw=False)
-        
-            #Default vals
-            center_dist = -1
-            iou_value = -1.01
-        
-            #FOR frame:
+            if(CALC_OTB_METRICS_STORE):
             
-            #Needs to be done
-            #Calulate IOU
-                #= IOU_CALC(matches)
+                #This will just show you the matches visually
+                image = DrawMatchesDiffColors(matches, detections, image, otb_draw=False)
+            
+                #Default vals
+                center_dist = -1
+                iou_value = -1.01
+            
+                #FOR frame:
+                
+                #Needs to be done
+                #Calulate IOU
+                
+                #name_b1, detsProb_b1, (x_b1,y_b1,w_b1,h_b1) = box1
+                
+                #dummybox1 = ("",0, (5,5,5,5))
+                #dummybox2 = ("",0, (100,100,5,5))
+                
+                #matchdummy = (dummybox1, dummybox2)
+                
+                #matches.append(matchdummy)
+                
+                #dummybox2 = ("",0, (5,5,5,5))
+                #dummybox1 = ("",0, (100,100,5,5))
+                
+                #matchdummy = (dummybox1, dummybox2)
+                
+                #matches.append(matchdummy)
+                
+                #dummybox2 = ("",0, (5,5,5,5))
+                #dummybox1 = ("",0, (5,5,5,5))
+                
+                #matchdummy = (dummybox1, dummybox2)
+                
+                #matches.append(matchdummy)
+                
+                iou_value_list = CalculateIOUs(matches)
+                
+                #pdb.set_trace()
+                    
+                #Calculate centroid distance
+                distanceList, garbage = CalcDistances(matches)
                 
                 
-            #Calculate centroid distance
-            distanceList, garbage = CalcDistances(matches)
-            
-            
-            #Print the distance if it was recorded
-            if(len(distanceList)>0):
-                center_dist = distanceList[0]
-                print(center_dist)
-            
-            #Write results to file
-            success_fptr.write( '%d %f \n' % (frame, iou_value))
-            prec_fptr.write(    '%d %f \n' % (frame, center_dist))
-            #pdb.set_trace()
+                #Print the distance if it was recorded
+                if(len(distanceList)>0):
+                    center_dist = distanceList[0]
+                    print(center_dist)
+                    
+                if(len(iou_value_list)>0):
+                    iou_value = iou_value_list[0]
+                    print(iou_value)
+                
+                #Write results to file
+                success_fptr.write( '%d %f \n' % (frame, iou_value))
+                prec_fptr.write(    '%d %f \n' % (frame, center_dist))
+                #pdb.set_trace()
         
         if(SHOW_OTB_GT):
             COLOR = (255,32,64)
@@ -979,12 +1054,17 @@ def YOLO():
         
         #print data to cmd line
         if(CALC_MV_YOLO_CENTER_DRIFT):
+            if(len(loopsArr) != len(driftArr)):
+                print("Adjust drift lengths")
+                del loopsArr[-1]
             sys.stdout.write("Drift amount: %f     \r" % totalError )
             sys.stdout.flush()            
             driftArr.append(totalError)
             
         if(PRINT_FRAMERATE):
-        
+            if(len(loopsArr) != len(frameRateArr)):
+                print("Adjust array lengths")
+                del loopsArr[-1]
             frameRateCur = (1/(time.time()-prev_time))
             sys.stdout.write("Frame Rate: %f     \r" % frameRateCur)
             sys.stdout.flush()
@@ -1030,19 +1110,25 @@ def YOLO():
     #plot center drift values
     if (CALC_MV_YOLO_CENTER_DRIFT):
         plt.plot(loopsArr, driftArr, label='Drift Values')
+        plt.xlabel('Current Frame')
+        plt.ylabel('Total drift of MV BBox from yolo classification')
     #    plt.legend()
+        plt.title("Diagonal-Normalized Centroid Drift Chart")
         plt.show()
     
     #plot framerate values
     if (PRINT_FRAMERATE):
         plt.plot(loopsArr, frameRateArr, label='Framerate Values')
         plt.legend()
+        plt.title("FPS Chart")
+        plt.xlabel('Current Frame')
+        plt.ylabel('Frames per second')
         plt.show()
     
-    success_fptr.close()
-    
-    prec_fptr.close()
-
+    if(CALC_OTB_METRICS_STORE):
+        success_fptr.close()
+        prec_fptr.close()
+        
     #release memory
     cap.release()
     out.release()
