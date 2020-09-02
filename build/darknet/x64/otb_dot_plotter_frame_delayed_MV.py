@@ -791,7 +791,7 @@ def YOLO():
     
     
     #While the video is open
-    while cap.isOpened():
+    while cap.isOpened():   
 #        pdb.set_trace()
         addedToFrame = False
         frame=frame+1
