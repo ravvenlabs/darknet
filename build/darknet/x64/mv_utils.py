@@ -18,7 +18,7 @@ def InsideRect(a,b,x,y,w,h, bufferV,bufferH):
     
 #Move the motion vector boxes 
 #takes in the new detections and the new and old optical flow points
-def UpdateMvBoxes(detections, newFramePoints, oldFramePoints, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ, DEBUG_OBJECTS, dbgFrame=None, mask = None):
+def UpdateMvBoxes(detections, newFramePoints, oldFramePoints, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ, DEBUG_OBJECTS=False, dbgFrame=None, mask = None):
     
     element = 0
     addedToFrame = False
@@ -32,7 +32,7 @@ def UpdateMvBoxes(detections, newFramePoints, oldFramePoints, MV_RECT_BUFFER_VER
         
         DistX = 0
         DistY = 0
-        
+        #print(detection)
         #unpack this detection
         name, detsProb, (x,y,w,h) = detection
            
@@ -269,4 +269,4 @@ def CalcDistances(matches):
     
     
     
-    return distList, totalDriftAmount
+    return distList, totalDriftAmount 

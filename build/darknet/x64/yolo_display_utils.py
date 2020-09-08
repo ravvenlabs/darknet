@@ -12,6 +12,13 @@ import math
 import pdb
 import matplotlib.pyplot as plt
 
+
+COLOR_blue = (255,0,0)
+COLOR_green = (0,255,0)
+COLOR_red = (0,0,255)
+COLOR_white = (255,255,255)
+
+
 #This function just detects where the file is being run from and adjusts paths to hit required folders 
 def FixVSPath():
 
@@ -69,7 +76,7 @@ def cvDrawBoxes(detections, img, COLOR):
         #            [red,green,blue], 2)
     return img
     
-def cvDrawCenters(frameList, img, COLOR):
+def cvDrawCenters(frameList, img, COLOR,size=1):
     red,green,blue = COLOR
     
     for detections in frameList:
@@ -87,7 +94,7 @@ def cvDrawCenters(frameList, img, COLOR):
             
             pt1 = (int(round(x)), int(round(y)))
             
-            cv2.circle(img,pt1,1,COLOR,-1)
+            cv2.circle(img,pt1,size,COLOR,-1)
 
             
             #cv2.rectangle(img, pt1, pt2, (red,green,blue), 1)

@@ -1,7 +1,7 @@
 #simulator
 import pdb
 
-#frameBuffer = [None]*10
+frameBuffer = [None]*10
 DisplayBuffer = [None]*10
 
 MVBuffer = [None]*10
