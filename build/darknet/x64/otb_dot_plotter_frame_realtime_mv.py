@@ -50,7 +50,7 @@ DETECT_DELAY=True
 
 #Using OTB will cuase the program to read in OTB data which is a CV benchmark set
 USE_OTB = True
-PLOT_AND_COMPARE_CENTERS = False
+PLOT_AND_COMPARE_CENTERS = True 
         
 if(USE_OTB):
     
@@ -329,6 +329,7 @@ def YOLO():
 
     # Create a mask image for drawing purposes
     mask = np.zeros_like(frame_read)
+    dotMask = np.zeros_like(frame_read)
     
     #init some variables for the loop
     frame=0
@@ -386,7 +387,7 @@ def YOLO():
             Delayed_index = (frameIndex)%YOLO_DET_SKIP
         
         
-            pdb.set_trace()
+            #pdb.set_trace()
             #Delayed_image = DisplayBuffer[(Delayed_index)%YOLO_DET_SKIP]
             
             Delayed_image = frame_to_store
@@ -459,17 +460,19 @@ def YOLO():
             
             
                 
-                #COLOR=COLOR_green
-                COLOR = COLOR_yellow
+                COLOR=COLOR_green
+                #COLOR = COLOR_yellow
                 #if(frameIndex%YOLO_DET_SKIP==0):
                 
                 #    AllDetectionsDelayed.append(detection_delayed)
                 #else:
                 AllDetectionsDelayed.append(DetectionsEveryFrameBuffer[Delayed_index-1])
                 
+                dotMask = cvDrawCenters(AllDetectionsDelayed, dotMask,COLOR)
                 
+                Delayed_image = cv2.add(Delayed_image,dotMask)
                 
-                Delayed_image = cvDrawCenters(AllDetectionsDelayed, Delayed_image,COLOR)
+                #Delayed_image = cvDrawCenters(AllDetectionsDelayed, Delayed_image,COLOR)
             
             #Show mv boxes
             if(mvbox_delayed is not None):
@@ -478,8 +481,12 @@ def YOLO():
                 
                 if(PLOT_AND_COMPARE_CENTERS):
                     AllMVBoxesDelayed.append(mvbox_delayed.copy())
-                    Delayed_image = cvDrawCenters(AllMVBoxesDelayed, Delayed_image, COLOR)
                     
+                    #Delayed_image = cvDrawCenters(AllMVBoxesDelayed, Delayed_image, COLOR)
+                    
+                    dotMask = cvDrawCenters(AllMVBoxesDelayed, dotMask, COLOR)
+                    
+                    Delayed_image = cv2.add(Delayed_image, dotMask)
                     
                 else:
                     #add content to image
@@ -745,6 +752,7 @@ def YOLO():
             #for el in MVBoxes:
             AllMVBoxes.append(MVBoxes.copy())
          
+            
             
             image = cvDrawCenters(AllMVBoxes, image,COLOR)
         
