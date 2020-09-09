@@ -70,8 +70,7 @@ if(USE_OTB):
     #path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Subway\groundtruth_rect.txt"
     
-    PLOT_AND_COMPARE_CENTERS = True
-
+    
     OTB_DETECT_PEOPLE_ONLY = True
 
     #WHEN USING! make sure the path is to an otb data folder as well
@@ -129,7 +128,7 @@ OF_DET_SKIP = 4
 ALWAYS_REDRAW_Redetect = True
 
 #frames till next yolo call 
-YOLO_DET_SKIP =20
+YOLO_DET_SKIP =10
 
 #PRint and plot framerate
 PRINT_FRAMERATE = False
@@ -363,6 +362,7 @@ def YOLO():
     MVBuffer = [None]*YOLO_DET_SKIP
     SanityBuffer = [None]*YOLO_DET_SKIP
 
+    origYolo = None
     detection_delayed = None
     mvbox_delayed = None
     
@@ -387,9 +387,9 @@ def YOLO():
         
         
             #pdb.set_trace()
-            Delayed_image = DisplayBuffer[(Delayed_index)%YOLO_DET_SKIP]
+            #Delayed_image = DisplayBuffer[(Delayed_index)%YOLO_DET_SKIP]
             
-          
+            Delayed_image = frame_to_store
             
             print(frameIndex)
             print(Delayed_index)
@@ -399,7 +399,15 @@ def YOLO():
                 #pdb.set_trace()
                 print("Display Yolo 1")
                 detection_delayed = LastDetection.copy()
-                
+                origYolo = LastDetection.copy()
+#                TODO
+#LOOP THRU AND APPLY ALL MOTION VECTORS to detection delayed
+                for mv_idx in range(0, YOLO_DET_SKIP):
+                    
+                    mvs_delayed = MVBuffer[(Delayed_index+mv_idx)%YOLO_DET_SKIP]
+                    (good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
+                    
+                    mvbox_delayed, garbage, garbage  = UpdateMvBoxes(detection_delayed, good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
                 
                 #detection_delayed = DetectionsBuffer[(frameIndex-1)%YOLO_DET_SKIP]
                 
@@ -411,7 +419,7 @@ def YOLO():
                 
             else:
                 #pdb.set_trace()
-                mvs_delayed = MVBuffer[Delayed_index]
+                mvs_delayed = MVBuffer[Delayed_index-1]
                 
                 
                 (good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
@@ -436,23 +444,30 @@ def YOLO():
 
             #Show yolo detection
             if(detection_delayed is not None and not PLOT_AND_COMPARE_CENTERS):
-                COLOR=COLOR_green
+                #COLOR=COLOR_green
                 
-
+                COLOR = COLOR_yellow
                 #add content to image
                 Delayed_image = cvDrawBoxes(detection_delayed, Delayed_image,COLOR)
                 
-            #Show the dots of yolo each frame
-            if(DetectionsEveryFrameBuffer[Delayed_index] is not None and PLOT_AND_COMPARE_CENTERS):
-            
-            
-                
                 COLOR=COLOR_green
-                if(frameIndex%YOLO_DET_SKIP==0):
                 
-                    AllDetectionsDelayed.append(detection_delayed)
-                else:
-                    AllDetectionsDelayed.append(DetectionsEveryFrameBuffer[Delayed_index])
+                Delayed_image = cvDrawBoxes(origYolo, Delayed_image,COLOR)
+                
+            #Show the dots of yolo each frame
+            if(DetectionsEveryFrameBuffer[Delayed_index-1] is not None and PLOT_AND_COMPARE_CENTERS):
+            
+            
+                
+                #COLOR=COLOR_green
+                COLOR = COLOR_yellow
+                #if(frameIndex%YOLO_DET_SKIP==0):
+                
+                #    AllDetectionsDelayed.append(detection_delayed)
+                #else:
+                AllDetectionsDelayed.append(DetectionsEveryFrameBuffer[Delayed_index-1])
+                
+                
                 
                 Delayed_image = cvDrawCenters(AllDetectionsDelayed, Delayed_image,COLOR)
             
@@ -496,7 +511,7 @@ def YOLO():
             #print("We have a full frame buff. Show content")
             #pdb.set_trace()
             sanityCheckFrameOfImage = SanityBuffer[Delayed_index]
-            print("Showing frame #", str(sanityCheckFrameOfImage)," at frame index ", frameIndex)
+            print("Showing frame #", frameIndex ," at frame index ", frameIndex) #str(sanityCheckFrameOfImage)
             cv2.imshow('Frame', Delayed_image)
             #cv2.waitKey(3)
             if(cv2.waitKey(3) & 0xFF == ord('q')):

@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 COLOR_blue = (255,0,0)
 COLOR_green = (0,255,0)
 COLOR_red = (0,0,255)
+COLOR_yellow = (0,255,255)
 COLOR_white = (255,255,255)
 
 
