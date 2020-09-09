@@ -106,6 +106,35 @@ def cvDrawCenters(frameList, img, COLOR,size=1):
             #            [red,green,blue], 2)
     return img
     
+def cvDrawCentersSublist(detections, img, COLOR,size=1):
+    red,green,blue = COLOR
+    
+    
+        
+    for detection in detections:
+        
+
+
+        x, y, w, h = detection[2][0],\
+            detection[2][1],\
+            detection[2][2],\
+            detection[2][3]
+        xmin, ymin, xmax, ymax = convertBack(
+            float(x), float(y), float(w), float(h))
+        
+        pt1 = (int(round(x)), int(round(y)))
+        
+        cv2.circle(img,pt1,size,COLOR,-1)
+
+        
+        #cv2.rectangle(img, pt1, pt2, (red,green,blue), 1)
+        #cv2.putText(img,
+        #            detection[0].decode() +
+        #            " [" + str(round(detection[1] * 100, 2)) + "]",
+        #            (pt1[0], pt1[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+        #            [red,green,blue], 2)
+    return img
+    
 #Exsiting function from darknet
 #This function draws boxes on the frame where detections are
 def cvDrawBoxesOTB(detections, img, COLOR):

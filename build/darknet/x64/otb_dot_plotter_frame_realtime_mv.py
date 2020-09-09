@@ -468,7 +468,10 @@ def YOLO():
                 #else:
                 AllDetectionsDelayed.append(DetectionsEveryFrameBuffer[Delayed_index-1])
                 
-                dotMask = cvDrawCenters(AllDetectionsDelayed, dotMask,COLOR)
+                #dotMask = cvDrawCenters(AllDetectionsDelayed, dotMask,COLOR)
+                dotMask = cvDrawCentersSublist(DetectionsEveryFrameBuffer[Delayed_index-1], dotMask,COLOR)
+                
+                #cvDrawCentersSublist
                 
                 Delayed_image = cv2.add(Delayed_image,dotMask)
                 
@@ -484,7 +487,11 @@ def YOLO():
                     
                     #Delayed_image = cvDrawCenters(AllMVBoxesDelayed, Delayed_image, COLOR)
                     
-                    dotMask = cvDrawCenters(AllMVBoxesDelayed, dotMask, COLOR)
+                    #dotMask = cvDrawCenters(AllMVBoxesDelayed, dotMask, COLOR)
+                    dotMask = cvDrawCentersSublist(mvbox_delayed.copy(), dotMask, COLOR)
+                    
+                    #cvDrawCentersSublist
+                    
                     
                     Delayed_image = cv2.add(Delayed_image, dotMask)
                     
