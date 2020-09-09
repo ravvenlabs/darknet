@@ -31,10 +31,14 @@ path = "./data/test.mp4"
 ####################################################################
 
 AllDetections = []
+AllDetectionsDelayed = []
 
 AllMVBoxes = []
+AllMVBoxesDelayed = []
+
 
 AllMatchedBoxes = []
+AllMatchedBoxesDelayed = []
 FrameCumulativeDrift = []
 #USE OTB DATA
 
@@ -352,6 +356,7 @@ def YOLO():
     #Buffered display
     DisplayBuffer = [None]*YOLO_DET_SKIP
     DetectionsBuffer = [None]*YOLO_DET_SKIP
+    DetectionsEveryFrameBuffer = [None]*YOLO_DET_SKIP
     LastDetection = None
     NextDet = None
     
@@ -428,16 +433,63 @@ def YOLO():
                 
                 #print(frame)
                 mvbox_delayed, garbage, garbage  = UpdateMvBoxes(mvbox_delayed, good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
-            
-            if(detection_delayed is not None):
+
+            #Show yolo detection
+            if(detection_delayed is not None and not PLOT_AND_COMPARE_CENTERS):
                 COLOR=COLOR_green
+                
+
                 #add content to image
                 Delayed_image = cvDrawBoxes(detection_delayed, Delayed_image,COLOR)
                 
+            #Show the dots of yolo each frame
+            if(DetectionsEveryFrameBuffer[Delayed_index] is not None and PLOT_AND_COMPARE_CENTERS):
+            
+            
+                
+                COLOR=COLOR_green
+                if(frameIndex%YOLO_DET_SKIP==0):
+                
+                    AllDetectionsDelayed.append(detection_delayed)
+                else:
+                    AllDetectionsDelayed.append(DetectionsEveryFrameBuffer[Delayed_index])
+                
+                Delayed_image = cvDrawCenters(AllDetectionsDelayed, Delayed_image,COLOR)
+            
+            #Show mv boxes
             if(mvbox_delayed is not None):
+                
                 COLOR=COLOR_red
-                #add content to image
-                Delayed_image = cvDrawBoxes(mvbox_delayed, Delayed_image,COLOR)
+                
+                if(PLOT_AND_COMPARE_CENTERS):
+                    AllMVBoxesDelayed.append(mvbox_delayed.copy())
+                    Delayed_image = cvDrawCenters(AllMVBoxesDelayed, Delayed_image, COLOR)
+                    
+                    
+                else:
+                    #add content to image
+                    Delayed_image = cvDrawBoxes(mvbox_delayed, Delayed_image,COLOR)
+        
+        
+            if(PLOT_AND_COMPARE_CENTERS and DETECT_DELAY):
+        
+                #Add this frames matched points to list
+                AllMatchedBoxesDelayed.append(MatchMVboxToYoloNew(AllMVBoxesDelayed[-1], AllDetectionsDelayed[-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
+                
+                
+                FrameDistances, garbage = CalcDistances(AllMatchedBoxesDelayed[-1])
+                
+                
+                numDetections = len(AllMVBoxesDelayed[-1])
+                
+                AverageDist = sum(FrameDistances)/numDetections
+                #print(numDetections)
+                
+                #Add this frames distances to distance list
+                FrameCumulativeDrift.append(AverageDist)
+                
+                #for matchList in AllMatchedBoxes:
+                #    DrawMatchesDiffColors(matchList, None, image,link_only=True)
         
         
             #display stored frame
@@ -536,7 +588,7 @@ def YOLO():
 
         darknet.copy_image_from_bytes(darknet_image,frame_resized.tobytes())
         
-        if(ALWAYS_REDRAW_Redetect):
+        if(ALWAYS_REDRAW_Redetect or PLOT_AND_COMPARE_CENTERS):
         
             detectionsEveryFrame = darknet.detect_image(netMain, metaMain, darknet_image, thresh=YOLO_DET_THRESH, hier_thresh=HI_THRESH, nms=NMS)
             if(USE_OTB):
@@ -557,12 +609,15 @@ def YOLO():
                         
             COLOR = (0,255,0)
         
+            
+        
+        
             if(drawYOLO and not PLOT_AND_COMPARE_CENTERS):
                 image = cvDrawBoxes(detectionsEveryFrame, image,COLOR)
             
             if(PLOT_AND_COMPARE_CENTERS):
                 
-                
+                DetectionsEveryFrameBuffer[(frameIndex)%YOLO_DET_SKIP] = detectionsEveryFrame.copy()
                 #for el in detections:
                 AllDetections.append(detectionsEveryFrame.copy())
 
@@ -681,7 +736,7 @@ def YOLO():
 ###################################################################################################################
         
         
-        if(PLOT_AND_COMPARE_CENTERS):
+        if(PLOT_AND_COMPARE_CENTERS and not DETECT_DELAY):
         
             #Add this frames matched points to list
             AllMatchedBoxes.append(MatchMVboxToYoloNew(AllMVBoxes[frame-1], AllDetections[frame-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
@@ -859,7 +914,7 @@ def YOLO():
         plt.show()
         
     #plot center drift values
-    if (PLOT_AND_COMPARE_CENTERS):
+    if (PLOT_AND_COMPARE_CENTERS and not DETECT_DELAY):
         del loopsArr[-1]
         
         AvgTotalDist = sum(FrameCumulativeDrift)/len(loopsArr)
@@ -867,12 +922,30 @@ def YOLO():
         plt.plot([0, loopsArr[-1]], [AvgTotalDist, AvgTotalDist], 'k-', color = 'r', linewidth=4)
         
         plt.plot(loopsArr, FrameCumulativeDrift)
-        plt.title('Average Pixel Distance From Matched Center Values')
+        #plt.title('Average Pixel Distance From Matched Center Values')
         
         plt.xlabel('Current Frame')
         plt.ylabel('Pixel Distance')
     #    plt.legend()
-        plt.title("Average Per-Box Centroid Drift Chart")
+        plt.title("Average Per-Box Centroid Drift MVBox to YOLO Box Chart NO Delay")
+        plt.show()
+        
+    if (PLOT_AND_COMPARE_CENTERS and DETECT_DELAY):
+        del loopsArr[-1]
+        
+        loopsArr = loopsArr[0:490]
+        
+        AvgTotalDist = sum(FrameCumulativeDrift)/len(loopsArr)
+        
+        plt.plot([0, loopsArr[-1]], [AvgTotalDist, AvgTotalDist], 'k-', color = 'r', linewidth=4)
+        
+        plt.plot(loopsArr, FrameCumulativeDrift)
+        #plt.title('Average Pixel Distance From Matched Center Values')
+        
+        plt.xlabel('Current Frame')
+        plt.ylabel('Pixel Distance')
+    #    plt.legend()
+        plt.title("Average Per-Box Centroid Drift MVBox to YOLO Box Chart N-frame Delayed")
         plt.show()
     
     #plot framerate values
