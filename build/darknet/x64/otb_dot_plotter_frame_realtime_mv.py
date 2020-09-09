@@ -50,7 +50,7 @@ DETECT_DELAY=True
 
 #Using OTB will cuase the program to read in OTB data which is a CV benchmark set
 USE_OTB = True
-PLOT_AND_COMPARE_CENTERS = True
+PLOT_AND_COMPARE_CENTERS = False
         
 if(USE_OTB):
     
@@ -386,7 +386,7 @@ def YOLO():
             Delayed_index = (frameIndex)%YOLO_DET_SKIP
         
         
-            #pdb.set_trace()
+            pdb.set_trace()
             #Delayed_image = DisplayBuffer[(Delayed_index)%YOLO_DET_SKIP]
             
             Delayed_image = frame_to_store
