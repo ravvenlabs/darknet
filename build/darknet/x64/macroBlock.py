@@ -4,9 +4,16 @@ import sys
 import pdb
 import time
 from datetime import datetime
-import yolo_display_utils
+from yolo_display_utils import *
+from mv_utils import *
 
 #pdb.set_trace()
+
+def UpdateMvBoxesMacroBlock(detections, frameNext,FramePrevMV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del):
+    
+    
+    
+    return newMVBoxes
 
 path = "./data/test.mp4"
 #path = "./data/aerial.mp4"
@@ -17,6 +24,8 @@ cap.set(4, 416)
 if(cap.isOpened()==False):
     print("Error opening")
 
+MV_YOLO_ASSOCIATION_BUFFER_X = 5
+MV_YOLO_ASSOCIATION_BUFFER_Y = 5
 
 pixelH = 416
 pixelV = 416
@@ -24,10 +33,13 @@ pixelV = 416
 #pixelH = 104
 #pixelV = 104
 
+#pixelH = 208
+#pixelV = 208
+
 
 pixels=pixelH*pixelV
-#MB_SIZE = 13
 MB_SIZE = 16
+#MB_SIZE = 16
 
 #MB_SIZE = 208
 
@@ -48,7 +60,7 @@ macroBlockListCur = []
 macroBlockAbsLocation = []
 macroBlockAbsIDXs = []
 searchWindow = 10
-searchWindow = 3
+searchWindow = 6
 
 xMotionVector = [None]* numBlocks
 yMotionVector = [None]*numBlocks
@@ -60,7 +72,17 @@ bestSAD = None
 print("Macroblocks: ", numBlocks)
 # Create some random colors
 
+#Function like this
+# mvbox_delayed, garbage, garbage  = UpdateMvBoxes(detection_delayed, good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, # # 
+# MV_RECT_BUFFER_HORZ_del)
 
+#Returns MV adjust boxes from detections 
+
+#A list of detections 
+mv_boxes = []
+detectionsCanned = [(b'car', 0.9875175356864929, (132.9082489013672, 252.57867431640625, 19.92416000366211, 27.44229507446289)), (b'car', 0.9844262599945068, (187.90623474121094, 186.30271911621094, 9.99842643737793, 12.396671295166016)), (b'car', 0.9786965847015381, (291.46466064453125, 269.5498962402344, 24.154693603515625, 34.94427490234375)), (b'car', 0.9781897068023682, (248.66781616210938, 249.05857849121094, 19.71929359436035, 35.382442474365234)), (b'car', 0.9753296971321106, (166.82289123535156, 197.5367431640625, 13.600704193115234, 16.434371948242188)), (b'car', 0.9693384766578674, (180.45913696289062, 220.43231201171875, 14.002452850341797, 20.855995178222656)), (b'car', 0.9488425850868225, (149.05673217773438, 195.62550354003906, 11.167325019836426, 11.12906265258789)), (b'car', 0.9218205809593201, (354.57940673828125, 310.01837158203125, 38.63389205932617, 51.30183029174805)), (b'car', 0.8971863985061646, (225.61891174316406, 181.2677459716797, 8.977764129638672, 12.375943183898926)), (b'truck', 0.8725090622901917, (253.3011474609375, 174.546142578125, 17.84792709350586, 33.19464874267578)), (b'car', 0.8053892254829407, (219.83656311035156, 163.845947265625, 8.55410385131836, 10.328858375549316)), (b'car', 0.6540932059288025, (81.79322052001953, 270.52166748046875, 29.485111236572266, 33.689449310302734)), (b'car', 0.6494554877281189, (119.26595306396484, 401.3941650390625, 57.44500732421875, 31.289005279541016)), (b'car', 0.6438901424407959, (180.33819580078125, 171.95281982421875, 9.02131462097168, 9.384852409362793)), (b'car', 0.6157169342041016, (164.00958251953125, 174.623046875, 10.016670227050781, 10.10055160522461)), (b'car', 0.5976225733757019, (171.83770751953125, 185.80467224121094, 9.461698532104492, 11.111896514892578)), (b'car', 0.5843924880027771, (237.10079956054688, 163.36111450195312, 7.352409839630127, 7.880095958709717)), (b'truck', 0.5014382600784302, (81.72644805908203, 269.6203308105469, 30.076330184936523, 42.456581115722656)), (b'car', 0.437776654958725, (230.6274871826172, 154.78915405273438, 5.732120513916016, 6.44113302230835)), (b'bus', 0.4131737947463989, (254.37860107421875, 176.56822204589844, 16.1439208984375, 31.278751373291016))]
+detectionsCannedOrig = detectionsCanned.copy()
+#pdb.set_trace()
 loops = 1
 
 
@@ -77,9 +99,13 @@ ret, frame = cap.read()
 frame = cv2.resize(frame, (pixelH, pixelV), interpolation=cv2.INTER_LINEAR)
 frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 now =  datetime.now()
+
+
+
 #For current frame
 while(cap.isOpened()):
 
+    
 
     sys.stdout.write("Frame %d     \r" % (loops) )
     sys.stdout.flush()
@@ -96,6 +122,8 @@ while(cap.isOpened()):
     
     now = datetime.now()
     print((now-prev).total_seconds(), " Seconds elapsed!")
+    
+    #################Macroblock function pass in both frames
     
     #partition frame 1 into 16x16 macroblocks
     macroBlockListPrev = macroBlockListCur.copy()
@@ -129,6 +157,8 @@ while(cap.isOpened()):
 ######################GETBLOCKS##########################################
 
     npMacroBlockAbsLocation= np.array(macroBlockAbsLocation)
+    
+    macroBlockAbsLocationPre = macroBlockAbsLocation.copy()
     
     #Collect motion information
     if(len(macroBlockListPrev) == len(macroBlockListCur)):
@@ -218,9 +248,9 @@ while(cap.isOpened()):
         #Apply motion vectors
         
         
-        for npMBSlice in npMacroBlockAbsLocation:
-            uLXCoord = npMBSlice[0]
-            uLYCoord = npMBSlice[1]
+        #for npMBSlice in npMacroBlockAbsLocation:
+        #    uLXCoord = npMBSlice[0]
+        #    uLYCoord = npMBSlice[1]
             #frame = cv2.rectangle(frame, (uLXCoord,uLYCoord), (uLXCoord+MB_SIZE,uLYCoord+MB_SIZE), (0,255,0), 1)
             #cv2.imshow('Frame',frame)
             #if cv2.waitKey(25) & 0xFF == ord('q'): 
@@ -228,38 +258,122 @@ while(cap.isOpened()):
         
         
         
-        npxMotionVector = np.array(xMotionVector)
-        npyMotionVector = np.array(yMotionVector)
+        #npxMotionVector = np.array(xMotionVector)
+        #npyMotionVector = np.array(yMotionVector)
 
-        npMacroBlockAbsLocationPre = np.copy(npMacroBlockAbsLocation)
+        #npMacroBlockAbsLocationPre = np.copy(npMacroBlockAbsLocation)
         
         
         #Add X
-        npMacroBlockAbsLocation[:,0] = np.add(npMacroBlockAbsLocation[:,0],npxMotionVector)
+        #npMacroBlockAbsLocation[:,0] = np.add(npMacroBlockAbsLocation[:,0],npxMotionVector)
         
         #Add Y
-        npMacroBlockAbsLocation[:,1] = np.add(npMacroBlockAbsLocation[:,1], npyMotionVector)
+        #npMacroBlockAbsLocation[:,1] = np.add(npMacroBlockAbsLocation[:,1], npyMotionVector)
 
-        npMacroBlockAbsLocationDiff = np.equal(npMacroBlockAbsLocation,npMacroBlockAbsLocationPre)
+        #npMacroBlockAbsLocationDiff = np.equal(npMacroBlockAbsLocation,npMacroBlockAbsLocationPre)
             
-        npMacroBlockAbsLocationDiff = np.logical_and(npMacroBlockAbsLocationDiff[:,0],npMacroBlockAbsLocationDiff[:,1])
+        #npMacroBlockAbsLocationDiff = np.logical_and(npMacroBlockAbsLocationDiff[:,0],npMacroBlockAbsLocationDiff[:,1])
             
  #       npMacroBlockListCur
         #xComp = xMotionVector[curMotIdx]
         #yComp = yMotionVector[curMotIdx]
         #pdb.set_trace()
         keepIdx = 0
-        for npMBSlice in npMacroBlockAbsLocation:
-            uLXCoord = npMBSlice[0]
-            uLYCoord = npMBSlice[1]
+        
+        ###########APPLY MVS to boxes
+        
+        
+        
+        for yolo_det in detectionsCanned:
+            #unpack detection
             
-            if(npMacroBlockAbsLocationDiff[keepIdx]==False):
             
-                frame = cv2.rectangle(frame, (uLXCoord,uLYCoord), (uLXCoord+MB_SIZE,uLYCoord+MB_SIZE), (255,0,0), 1)
+            
+            name_yolo, detsProb_yolo, (x_yolo,y_yolo,w_yolo,h_yolo) = yolo_det
+            #pdb.set_trace()
+            xmin_yolo, ymin_yolo, xmax_yolo, ymax_yolo = convertBack(
+                    float(x_yolo), float(y_yolo), float(w_yolo), float(h_yolo))
+        
+            #Yolo corners
+            #get corner points and put in tuple
+            pt1_yolo = (xmin_yolo, ymin_yolo)
+            pt2_yolo = (xmax_yolo, ymax_yolo)
+
+            rect_YOLO = (pt1_yolo,pt2_yolo)
+            
+            total_x_mv=0
+            total_y_mv=0
+            contributingBoxesx=0
+            contributingBoxesy=0
+            
+            
+            #pdb.set_trace()
+            for mb_idx in range(0, len(macroBlockAbsLocationPre)):
+                
+                #Get mb absolute location
+                
+                (MB_r, MB_c ) = macroBlockAbsLocationPre[mb_idx]
+                
+                pt1_MB = (MB_r, MB_c )
+                pt2_MB = (MB_r+MB_SIZE, MB_c+MB_SIZE)
+                
+                rect_MB = (pt1_MB, pt2_MB)
+                
+                
+                if(rectOverlap(rect_YOLO, rect_MB, MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y)):
+                   
+                    #if overlap apply motion vectors
+                    #frame = cv2.rectangle(frame, pt1_MB, pt2_MB, (0,0,255), 1)
+                    #mb_inbounds +=1
+                
+                    x_mv = xMotionVector[mb_idx]
+                    y_mv = yMotionVector[mb_idx]
+
+                    #if one is nonzero
+                    if(not x_mv==0):
+                        contributingBoxesx+=1
+                    #if one is nonzero
+                    if(not y_mv==0):
+                        contributingBoxesy+=1
+
+                    total_x_mv += x_mv
+                    total_y_mv += y_mv
+
+            if(not contributingBoxesx == 0):
+                #pdb.set_trace()
+                total_x_mv = total_x_mv/contributingBoxesx
+                
+            if(not contributingBoxesy == 0):
+                #pdb.set_trace()
+                total_y_mv = total_y_mv/contributingBoxesy
+            
+            
+                
+                        
+            
+                    
+            mv_box_new = name_yolo, detsProb_yolo, (x_yolo+total_x_mv,y_yolo+total_y_mv,w_yolo,h_yolo)
+            
+            mv_boxes.append(mv_box_new)
+        
+        
+        
+        #draw macroblocks###############################################################################
+        #for npMBSlice in npMacroBlockAbsLocation:
+        #    uLXCoord = npMBSlice[0]
+        #    uLYCoord = npMBSlice[1]
+        
+        #if(npMacroBlockAbsLocationDiff[keepIdx]==False):
+                
+            #frame = cv2.rectangle(frame, (uLXCoord,uLYCoord), (uLXCoord+MB_SIZE,uLYCoord+MB_SIZE), (255,0,0), 1)
             #cv2.imshow('Frame',frame)
             #if cv2.waitKey(25) & 0xFF == ord('q'): 
             #    break
-            keepIdx+=1
+            #keepIdx+=1
+            #pdb.set_trace()
+ 
+        #draw macroblocks###############################################################################
+
  
 #        for npMBIDX in npMacroBlockAbsLocation:
 #            print(npMBIDX)
@@ -268,7 +382,14 @@ while(cap.isOpened()):
     #        break
     #    pdb.set_trace()
         
+        ##Draw results
         
+        
+
+        frame = cvDrawBoxes(detectionsCannedOrig,frame, COLOR_green)
+        frame = cvDrawBoxes(mv_boxes,frame, COLOR_red)
+        
+        detectionsCanned = mv_boxes.copy()
         
     if(ret==True):
         cv2.imshow('Frame',frame)

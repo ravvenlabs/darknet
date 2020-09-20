@@ -49,7 +49,7 @@ DETECT_DELAY=True
 
 
 #Using OTB will cuase the program to read in OTB data which is a CV benchmark set
-USE_OTB = True
+USE_OTB = False
 PLOT_AND_COMPARE_CENTERS = True 
         
 if(USE_OTB):
@@ -408,14 +408,20 @@ def YOLO():
                     mvs_delayed = MVBuffer[(Delayed_index+mv_idx)%YOLO_DET_SKIP]
                     (good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
                     
+                    
+                    
                     mvbox_delayed, garbage, garbage  = UpdateMvBoxes(detection_delayed, good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
+                
+                    
+                
                 
                 #detection_delayed = DetectionsBuffer[(frameIndex-1)%YOLO_DET_SKIP]
                 
                 #DetectionsBuffer[Delayed_index]
                 print("Yolo to be shown at frame index # ", frameIndex)
                 
-                #pdb.set_trace()
+                pdb.set_trace()
+                pdb.set_trace()
                 mvbox_delayed = detection_delayed.copy()
                 
             else:
