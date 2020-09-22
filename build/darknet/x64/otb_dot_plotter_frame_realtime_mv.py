@@ -16,6 +16,8 @@ from yolo_display_utils import *
 from mv_utils import *
 from copy import deepcopy
 
+from macroBlock import *
+
 #Generic anaconda activate
 
 #Not working yet
@@ -41,6 +43,42 @@ AllMatchedBoxes = []
 AllMatchedBoxesDelayed = []
 FrameCumulativeDrift = []
 #USE OTB DATA
+#USE OTB DATA
+
+
+
+####MACROBLOCK CODE/PARAMS
+USE_MB_MOTION = False
+if(USE_MB_MOTION):
+
+    pixelH = 416
+    pixelV = 416
+
+    pixels=pixelH*pixelV
+    MB_SIZE = 16
+
+    numBlocks = int(pixels / (MB_SIZE*MB_SIZE))
+    numBlocksHorz = int(pixelH/MB_SIZE)
+    numBlocksVert = int(pixelV/MB_SIZE)
+
+    macroBlockListPrev = []
+    macroBlockListCur = []
+    macroBlockAbsLocation = []
+    macroBlockAbsLocationPre = []
+    mv_boxes = []
+
+    xMotionVector = [None]* numBlocks
+    yMotionVector = [None]*numBlocks
+
+    #macroBlockAbsIDXs = []
+    searchWindow = 10
+    searchWindow = 5
+
+    MB_PARAM = (searchWindow, numBlocksVert, numBlocksHorz, numBlocks, MB_SIZE, pixels, pixelV, pixelH)
+    MB_LISTS = (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector)
+
+#################
+
 
 #Use a buffer of delayed frames to do mv-yolo combination
 #DETECT_DELAY=False
@@ -49,8 +87,8 @@ DETECT_DELAY=True
 
 
 #Using OTB will cuase the program to read in OTB data which is a CV benchmark set
-USE_OTB = False
-PLOT_AND_COMPARE_CENTERS = True 
+USE_OTB = True
+PLOT_AND_COMPARE_CENTERS = False
         
 if(USE_OTB):
     
@@ -163,7 +201,7 @@ MV_YOLO_ASSOCIATION_BUFFER_Y = 5
 #put circles on most recent O.F. point
 CV_CIRCLE_ON = False
 #put lines on for O.F.
-CV_LINES_ON = True
+CV_LINES_ON = False
 
 #more objects detected and tracked with O.F.
 DetectionPoints = 250
@@ -232,7 +270,13 @@ altNames = None
 #Main loop
 def YOLO():
 
+    global MB_LISTS, MB_PARAM
+    
+
     global metaMain, netMain, altNames
+    
+    
+    
     
     if not os.path.exists(configPath):
         raise ValueError("Invalid config path `" +
@@ -366,6 +410,8 @@ def YOLO():
     origYolo = None
     detection_delayed = None
     mvbox_delayed = None
+    frame_gray=[]
+    
     
     
     #While the video is open
@@ -406,11 +452,24 @@ def YOLO():
                 for mv_idx in range(0, YOLO_DET_SKIP):
                     
                     mvs_delayed = MVBuffer[(Delayed_index+mv_idx)%YOLO_DET_SKIP]
-                    (good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
                     
                     
+                    if(not USE_MB_MOTION):
                     
-                    mvbox_delayed, garbage, garbage  = UpdateMvBoxes(detection_delayed, good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
+                        (good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
+                        mvbox_delayed, garbage, garbage  = UpdateMvBoxes(detection_delayed, good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
+                    
+                    else:
+                        
+                        (xMotionVector, yMotionVector,  MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
+                        #pdb.set_trace()
+                        if(not isinstance(mvbox_delayed,NoneType) ):
+                            mvbox_delayed.clear()
+                        else:
+                            mvbox_delayed = []
+                        mvbox_delayed, MB_LISTS = UpdateMvBoxesMacroBlock(mvbox_delayed, MB_PARAM, MB_LISTS, detection_delayed, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
+    
+                    
                 
                     
                 
@@ -420,16 +479,27 @@ def YOLO():
                 #DetectionsBuffer[Delayed_index]
                 print("Yolo to be shown at frame index # ", frameIndex)
                 
-                pdb.set_trace()
-                pdb.set_trace()
-                mvbox_delayed = detection_delayed.copy()
+               # pdb.set_trace()
+              #  pdb.set_trace()
+                detection_delayed = mvbox_delayed.copy()
+                #mvbox_delayed = detection_delayed.copy()
                 
             else:
                 #pdb.set_trace()
                 mvs_delayed = MVBuffer[Delayed_index-1]
                 
-                
-                (good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
+                if(not USE_MB_MOTION):
+                    (good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
+                    #print(frame)
+                    mvbox_delayed, garbage, garbage  = UpdateMvBoxes(mvbox_delayed, good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
+                else:
+                        
+                    (xMotionVector, yMotionVector,  MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
+                    #pdb.set_trace()
+                    tempMVboxDelayed = mvbox_delayed.copy()
+                    mvbox_delayed.clear()
+                    mvbox_delayed, MB_LISTS = UpdateMvBoxesMacroBlock(mvbox_delayed, MB_PARAM, MB_LISTS, tempMVboxDelayed, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
+       
            
                 if(CV_LINES_ON):
                     
@@ -446,8 +516,7 @@ def YOLO():
        
                 
                 
-                #print(frame)
-                mvbox_delayed, garbage, garbage  = UpdateMvBoxes(mvbox_delayed, good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
+                
 
             #Show yolo detection
             if(detection_delayed is not None and not PLOT_AND_COMPARE_CENTERS):
@@ -587,6 +656,12 @@ def YOLO():
         ###############################MVs#########################
             ##optical flow code#
         
+        #MB_FRAME
+        frame_gray_prev = frame_gray.copy()
+        
+        
+        
+        
         frame_gray = cv2.cvtColor(frame_read, cv2.COLOR_BGR2GRAY)
         # calculate optical flow
         p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
@@ -723,12 +798,21 @@ def YOLO():
         SanityBuffer[(frame-1)%YOLO_DET_SKIP] = frameIndex
         #If boxes were redetected, copy them to mvboxes
         if(frame%YOLO_DET_SKIP==0 or MVBoxes is None):
+            
+            
             MVBoxes =  AssocDetections(detections)
             
-            Mv_info = (good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
+            if(not USE_MB_MOTION):
+            
+                Mv_info = (good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
                 #pdb.set_trace()
-                
-
+            else:
+                ##MACROBLOCK MOTION WORK
+                xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+            
+                Mv_info = (xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
+                ##
+            
             
             MVBuffer[(frame-1)%YOLO_DET_SKIP] = deepcopy(Mv_info)
             
@@ -738,8 +822,18 @@ def YOLO():
             #UpdateMvBoxes(detections, newFramePoints, oldFramePoints, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ, DEBUG_OBJECTS, dbgFrame=None, mask = None):
             
             if(DETECT_DELAY):
-                Mv_info = (good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
+                
+               
+                if(not USE_MB_MOTION):
+            
+                    Mv_info = (good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
                 #pdb.set_trace()
+                else:
+                    ##MACROBLOCK MOTION WORK
+                    xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+                
+                    Mv_info = (xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
+                    ##
                 
                 MVBuffer[(frame-1)%YOLO_DET_SKIP] = deepcopy(Mv_info)
             
