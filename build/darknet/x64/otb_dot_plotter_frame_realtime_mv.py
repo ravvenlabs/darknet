@@ -48,7 +48,7 @@ FrameCumulativeDrift = []
 
 
 ####MACROBLOCK CODE/PARAMS
-USE_MB_MOTION = False
+USE_MB_MOTION = True
 if(USE_MB_MOTION):
 
     pixelH = 416
@@ -72,7 +72,7 @@ if(USE_MB_MOTION):
 
     #macroBlockAbsIDXs = []
     searchWindow = 10
-    searchWindow = 5
+    searchWindow = 10
 
     MB_PARAM = (searchWindow, numBlocksVert, numBlocksHorz, numBlocks, MB_SIZE, pixels, pixelV, pixelH)
     MB_LISTS = (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector)
@@ -88,7 +88,7 @@ DETECT_DELAY=True
 
 #Using OTB will cuase the program to read in OTB data which is a CV benchmark set
 USE_OTB = True
-PLOT_AND_COMPARE_CENTERS = False
+PLOT_AND_COMPARE_CENTERS = True
         
 if(USE_OTB):
     
@@ -175,8 +175,8 @@ PRINT_FRAMERATE = False
 DEBUG_OBJECTS = False
 
 #MV inside of rectangle buffer for outside of rectangle [units of pixels]
-MV_RECT_BUFFER_VERT = 10
-MV_RECT_BUFFER_HORZ = 10
+MV_RECT_BUFFER_VERT = 0
+MV_RECT_BUFFER_HORZ = 0
 
 #Yolo accuracy required to make a bbox
 YOLO_DET_THRESH = .35
@@ -412,13 +412,16 @@ def YOLO():
     mvbox_delayed = None
     frame_gray=[]
     
-    
+    now = datetime.now()
     
     #While the video is open
     while cap.isOpened():   
 #        pdb.set_trace()
         addedToFrame = False
         
+        prev = now
+        now = datetime.now()
+        print((now-prev).total_seconds(), " Seconds elapsed!")
         
         loopsArr.append(frame)
         if(SLOW_MODE):

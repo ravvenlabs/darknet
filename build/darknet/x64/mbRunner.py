@@ -45,7 +45,7 @@ yMotionVector = [None]*numBlocks
 
 #macroBlockAbsIDXs = []
 searchWindow = 10
-searchWindow = 4
+searchWindow = 7
 frame_gray_prev =None
 frame_gray = None
 
