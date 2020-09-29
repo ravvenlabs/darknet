@@ -123,7 +123,9 @@ while(cap.isOpened()):
     ######################GETBLOCKS##########################################
     
     
-    xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+#    xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+
+    xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
 
     
     #pdb.set_trace()
