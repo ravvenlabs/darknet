@@ -432,183 +432,6 @@ def YOLO():
         frameIndex=frame
         frame=frame+1
         
-        if(DETECT_DELAY and (frame)>YOLO_DET_SKIP):
-            Delayed_index = (frameIndex)%YOLO_DET_SKIP
-        
-        
-            #pdb.set_trace()
-            #Delayed_image = DisplayBuffer[(Delayed_index)%YOLO_DET_SKIP]
-            
-            Delayed_image = frame_to_store
-            
-            print(frameIndex)
-            print(Delayed_index)
-            #pdb.set_trace()
-            #Detection update
-            if(frameIndex%YOLO_DET_SKIP==0):
-                #pdb.set_trace()
-                print("Display Yolo 1")
-                detection_delayed = LastDetection.copy()
-                origYolo = LastDetection.copy()
-#                TODO
-#LOOP THRU AND APPLY ALL MOTION VECTORS to detection delayed
-                for mv_idx in range(0, YOLO_DET_SKIP):
-                    
-                    mvs_delayed = MVBuffer[(Delayed_index+mv_idx)%YOLO_DET_SKIP]
-                    
-                    
-                    if(not USE_MB_MOTION):
-                    
-                        (good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
-                        mvbox_delayed, garbage, garbage  = UpdateMvBoxes(detection_delayed, good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
-                    
-                    else:
-                        
-                        (xMotionVector, yMotionVector,  MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
-                        #pdb.set_trace()
-                        if(not isinstance(mvbox_delayed,NoneType) ):
-                            mvbox_delayed.clear()
-                        else:
-                            mvbox_delayed = []
-                        mvbox_delayed, MB_LISTS = UpdateMvBoxesMacroBlock(mvbox_delayed, MB_PARAM, MB_LISTS, detection_delayed, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
-    
-                    
-                
-                    
-                
-                
-                #detection_delayed = DetectionsBuffer[(frameIndex-1)%YOLO_DET_SKIP]
-                
-                #DetectionsBuffer[Delayed_index]
-                print("Yolo to be shown at frame index # ", frameIndex)
-                
-               # pdb.set_trace()
-              #  pdb.set_trace()
-                detection_delayed = mvbox_delayed.copy()
-                #mvbox_delayed = detection_delayed.copy()
-                
-            else:
-                #pdb.set_trace()
-                mvs_delayed = MVBuffer[Delayed_index-1]
-                
-                if(not USE_MB_MOTION):
-                    (good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
-                    #print(frame)
-                    mvbox_delayed, garbage, garbage  = UpdateMvBoxes(mvbox_delayed, good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
-                else:
-                        
-                    (xMotionVector, yMotionVector,  MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
-                    #pdb.set_trace()
-                    tempMVboxDelayed = mvbox_delayed.copy()
-                    mvbox_delayed.clear()
-                    mvbox_delayed, MB_LISTS = UpdateMvBoxesMacroBlock(mvbox_delayed, MB_PARAM, MB_LISTS, tempMVboxDelayed, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
-       
-           
-                if(CV_LINES_ON):
-                    
-                    mask = mask = np.zeros_like(frame_read)
-                    for i,(new,old) in enumerate(zip(good_new_del, good_old_del)):
-                        a,b = new.ravel()
-                        c,d = old.ravel()
-                        
-                        
-                        mask = cv2.line(mask, (a,b),(c,d), color[i].tolist(), 2)
-                                #add mask to image
-                    Delayed_image = cv2.add(Delayed_image,mask)
-                    
-       
-                
-                
-                
-
-            #Show yolo detection
-            if(detection_delayed is not None and not PLOT_AND_COMPARE_CENTERS):
-                #COLOR=COLOR_green
-                
-                COLOR = COLOR_yellow
-                #add content to image
-                Delayed_image = cvDrawBoxes(detection_delayed, Delayed_image,COLOR)
-                
-                COLOR=COLOR_green
-                
-                Delayed_image = cvDrawBoxes(origYolo, Delayed_image,COLOR)
-                
-            #Show the dots of yolo each frame
-            if(DetectionsEveryFrameBuffer[Delayed_index-1] is not None and PLOT_AND_COMPARE_CENTERS):
-            
-            
-                
-                COLOR=COLOR_green
-                #COLOR = COLOR_yellow
-                #if(frameIndex%YOLO_DET_SKIP==0):
-                
-                #    AllDetectionsDelayed.append(detection_delayed)
-                #else:
-                AllDetectionsDelayed.append(DetectionsEveryFrameBuffer[Delayed_index-1])
-                
-                #dotMask = cvDrawCenters(AllDetectionsDelayed, dotMask,COLOR)
-                dotMask = cvDrawCentersSublist(DetectionsEveryFrameBuffer[Delayed_index-1], dotMask,COLOR)
-                
-                #cvDrawCentersSublist
-                
-                Delayed_image = cv2.add(Delayed_image,dotMask)
-                
-                #Delayed_image = cvDrawCenters(AllDetectionsDelayed, Delayed_image,COLOR)
-            
-            #Show mv boxes
-            if(mvbox_delayed is not None):
-                
-                COLOR=COLOR_red
-                
-                if(PLOT_AND_COMPARE_CENTERS):
-                    AllMVBoxesDelayed.append(mvbox_delayed.copy())
-                    
-                    #Delayed_image = cvDrawCenters(AllMVBoxesDelayed, Delayed_image, COLOR)
-                    
-                    #dotMask = cvDrawCenters(AllMVBoxesDelayed, dotMask, COLOR)
-                    dotMask = cvDrawCentersSublist(mvbox_delayed.copy(), dotMask, COLOR)
-                    
-                    #cvDrawCentersSublist
-                    
-                    
-                    Delayed_image = cv2.add(Delayed_image, dotMask)
-                    
-                else:
-                    #add content to image
-                    Delayed_image = cvDrawBoxes(mvbox_delayed, Delayed_image,COLOR)
-        
-        
-            if(PLOT_AND_COMPARE_CENTERS and DETECT_DELAY):
-        
-                #Add this frames matched points to list
-                AllMatchedBoxesDelayed.append(MatchMVboxToYoloNew(AllMVBoxesDelayed[-1], AllDetectionsDelayed[-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
-                
-                
-                FrameDistances, garbage = CalcDistances(AllMatchedBoxesDelayed[-1])
-                
-                
-                numDetections = len(AllMVBoxesDelayed[-1])
-                
-                AverageDist = sum(FrameDistances)/numDetections
-                #print(numDetections)
-                
-                #Add this frames distances to distance list
-                FrameCumulativeDrift.append(AverageDist)
-                
-                #for matchList in AllMatchedBoxes:
-                #    DrawMatchesDiffColors(matchList, None, image,link_only=True)
-        
-        
-            #display stored frame
-            #print("We have a full frame buff. Show content")
-            #pdb.set_trace()
-            sanityCheckFrameOfImage = SanityBuffer[Delayed_index]
-            print("Showing frame #", frameIndex ," at frame index ", frameIndex) #str(sanityCheckFrameOfImage)
-            cv2.imshow('Frame', Delayed_image)
-            #cv2.waitKey(3)
-            if(cv2.waitKey(3) & 0xFF == ord('q')):
-                break
-        
         
         
         #every 10 start with new mask
@@ -653,8 +476,6 @@ def YOLO():
                                     darknet.network_height(netMain)), interpolation=cv2.INTER_LINEAR)
         frame_rgb = cv2.cvtColor(frame_read, cv2.COLOR_BGR2RGB)
         
-        if(DETECT_DELAY):
-            frame_to_store = frame_read.copy()
         
         ###############################MVs#########################
             ##optical flow code#
@@ -765,16 +586,7 @@ def YOLO():
                     
                     #print(detections)
             
-            if((DETECT_DELAY and frame%YOLO_DET_SKIP==0) or (DETECT_DELAY and frame==1)):
-                print(frame)
-                print("Detections added at frame", frame)
-                #pdb.set_trace()
-                #DetectionsBuffer[(frame-1)%YOLO_DET_SKIP] = detections.copy()
-                LastDetection = NextDet
-                NextDet = detections.copy()
-                
-                print("Get Yolo 1")
-       
+         
         COLOR = (0,255,0)
         
         if(drawYOLO and not PLOT_AND_COMPARE_CENTERS):
@@ -824,21 +636,6 @@ def YOLO():
         else:
             #UpdateMvBoxes(detections, newFramePoints, oldFramePoints, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ, DEBUG_OBJECTS, dbgFrame=None, mask = None):
             
-            if(DETECT_DELAY):
-                
-               
-                if(not USE_MB_MOTION):
-            
-                    Mv_info = (good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
-                #pdb.set_trace()
-                else:
-                    ##MACROBLOCK MOTION WORK
-                    xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
-                
-                    Mv_info = (xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
-                    ##
-                
-                MVBuffer[(frame-1)%YOLO_DET_SKIP] = deepcopy(Mv_info)
             
             MVBoxes, dbgFrame,addedToFrame = UpdateMvBoxes(MVBoxes, good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ, DEBUG_OBJECTS, image, mask)
         COLOR = (0,0,255)
@@ -1019,11 +816,6 @@ def YOLO():
             if(cv2.waitKey(3) & 0xFF == ord('q')):
                 break
         
-        elif(DETECT_DELAY):
-            frame_to_store = cv2.putText(frame_to_store, str(frameIndex), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 1,   (0,0,0), 2)
-        
-            DisplayBuffer[(frame-1)%YOLO_DET_SKIP] = frame_to_store.copy()
-            
             #Add unprocessed frame to array
             #Add MV info to array
         
@@ -1063,25 +855,6 @@ def YOLO():
         plt.title("Average Per-Box Centroid Drift MVBox to YOLO Box Chart NO Delay")
         plt.show()
         
-    if (PLOT_AND_COMPARE_CENTERS and DETECT_DELAY):
-        del loopsArr[-1]
-        
-        max = 500
-        
-        loopsArr = loopsArr[0:(max-YOLO_DET_SKIP)]
-        
-        AvgTotalDist = sum(FrameCumulativeDrift)/len(loopsArr)
-        
-        plt.plot([0, loopsArr[-1]], [AvgTotalDist, AvgTotalDist], 'k-', color = 'r', linewidth=4)
-        
-        plt.plot(loopsArr, FrameCumulativeDrift)
-        #plt.title('Average Pixel Distance From Matched Center Values')
-        
-        plt.xlabel('Current Frame')
-        plt.ylabel('Pixel Distance')
-    #    plt.legend()
-        plt.title("Average Per-Box Centroid Drift MVBox to YOLO Box Chart N-frame Delayed")
-        plt.show()
     
     #plot framerate values
     if (PRINT_FRAMERATE):

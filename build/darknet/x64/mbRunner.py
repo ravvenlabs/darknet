@@ -45,7 +45,7 @@ yMotionVector = [None]*numBlocks
 
 #macroBlockAbsIDXs = []
 searchWindow = 10
-searchWindow = 7
+searchWindow = 10
 frame_gray_prev =None
 frame_gray = None
 
@@ -123,21 +123,63 @@ while(cap.isOpened()):
     ######################GETBLOCKS##########################################
     
     
-#    xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+    #xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
 
     xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+
+    if(loops>1):
+
+        (garbage, garbage, garbage, macroBlockAbsLocation, garbage, garbage) = MB_LISTS
+
+        npxMotionVector = np.array(xMotionVector)
+        npyMotionVector = np.array(yMotionVector)
+
+        npMacroBlockAbsLocation= np.array(macroBlockAbsLocation)
+
+        npMacroBlockAbsLocationPre = np.copy(npMacroBlockAbsLocation)
+
+     #   pdb.set_trace()
+        #Add X
+        npMacroBlockAbsLocation[:,0] = np.add(npMacroBlockAbsLocation[:,0],npxMotionVector)
+
+        #Add Y
+        npMacroBlockAbsLocation[:,1] = np.add(npMacroBlockAbsLocation[:,1], npyMotionVector)
+
+        npMacroBlockAbsLocationDiff = np.equal(npMacroBlockAbsLocation,npMacroBlockAbsLocationPre)
+
+        npMacroBlockAbsLocationDiff = np.logical_and(npMacroBlockAbsLocationDiff[:,0],npMacroBlockAbsLocationDiff[:,1])
+
+     #       npMacroBlockListCur
+            #xComp = xMotionVector[curMotIdx]
+            #yComp = yMotionVector[curMotIdx]
+            #pdb.set_trace()
+        keepIdx = 0
+        for npMBSlice in npMacroBlockAbsLocation:
+            uLXCoord = npMBSlice[0]
+            uLYCoord = npMBSlice[1]
+
+            if(npMacroBlockAbsLocationDiff[keepIdx]==False):
+
+                frame = cv2.rectangle(frame, (uLXCoord,uLYCoord), (uLXCoord+MB_SIZE,uLYCoord+MB_SIZE), (255,0,0), 1)
+            #cv2.imshow('Frame',frame)
+            #if cv2.waitKey(25) & 0xFF == ord('q'): 
+            #    break
+            keepIdx+=1
 
     
     #pdb.set_trace()
     
     mv_boxes, MB_LISTS = UpdateMvBoxesMacroBlock(mv_boxes, MB_PARAM, MB_LISTS, detectionsCanned, MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y)
     
+    
         
     if(not len(mv_boxes)==0 ):  
         
-        ##Draw results
-        frame = cvDrawBoxes(detectionsCannedOrig,frame, COLOR_green)
-        frame = cvDrawBoxes(mv_boxes,frame, COLOR_red)
+        if(True):
+        
+            ##Draw results
+            frame = cvDrawBoxes(detectionsCannedOrig,frame, COLOR_green)
+            frame = cvDrawBoxes(mv_boxes,frame, COLOR_red)
         
         detectionsCanned.clear()
         detectionsCanned = mv_boxes.copy()
@@ -158,9 +200,9 @@ while(cap.isOpened()):
         break
 
 now = datetime.now()
-print((start_time).total_seconds(), " Seconds elapsed total!")
+#print((start_time).total_seconds(), " Seconds elapsed total!")
 
-print((now).total_seconds(), " Seconds elapsed total!")
+print((now-start_time).total_seconds(), " Seconds elapsed total!")
 
 cap.release()
 cv2.destroyAllWindows()
