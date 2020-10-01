@@ -841,8 +841,17 @@ def YOLO():
                 MVBuffer[(frame-1)%YOLO_DET_SKIP] = deepcopy(Mv_info)
             
             else:
-            
-                MVBoxes, dbgFrame,addedToFrame = UpdateMvBoxes(MVBoxes, good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ, DEBUG_OBJECTS, image, mask)
+                if(not USE_MB_MOTION):
+                
+                    MVBoxes, dbgFrame,addedToFrame = UpdateMvBoxes(MVBoxes, good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ, DEBUG_OBJECTS, image, mask)
+                
+                else:
+                    
+                    MVBoxesTemp = MVBoxes.copy()
+                    MVBoxes.clear()
+                    MVBoxes, MB_LISTS = UpdateMvBoxesMacroBlock(MVBoxes, MB_PARAM, MB_LISTS, MVBoxesTemp, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
+
+
         COLOR = (0,0,255)
         #pdb.set_trace()
         
