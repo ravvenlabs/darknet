@@ -213,7 +213,7 @@ def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_g
 
 
 def GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev): #, macroBlockListPrev, macroBlockListCur,macroBlockAbsLocationPre, xMotionVector, yMotionVector):
-
+    print("Macroblock motion vector call")
     (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector) = MB_LISTS
     
     (searchWindow, numBlocksVert, numBlocksHorz, numBlocks, MB_SIZE, pixels, pixelV, pixelH) = MB_PARAM

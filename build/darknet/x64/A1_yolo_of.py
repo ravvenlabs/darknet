@@ -467,7 +467,7 @@ def YOLO():
             frame_read = cv2.rectangle(frame_read, pt1, pt2, (0,0,0), -10)
             
             
-        if(frame > breakAt and ( CALC_MV_YOLO_CENTER_DRIFT or PRINT_FRAMERATE)):
+        if(frame > breakAt and ( CALC_MV_YOLO_CENTER_DRIFT or PRINT_FRAMERATE or PLOT_AND_COMPARE_CENTERS)):
             break
     
         

@@ -45,7 +45,7 @@ yMotionVector = [None]*numBlocks
 
 #macroBlockAbsIDXs = []
 searchWindow = 10
-searchWindow = 10
+searchWindow = 3
 frame_gray_prev =None
 frame_gray = None
 
@@ -123,9 +123,9 @@ while(cap.isOpened()):
     ######################GETBLOCKS##########################################
     
     
-    #xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+    xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
 
-    xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+    #xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
 
     if(loops>1):
 

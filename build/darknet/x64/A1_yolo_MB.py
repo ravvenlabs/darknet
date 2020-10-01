@@ -71,7 +71,7 @@ if(USE_MB_MOTION):
     yMotionVector = [None]*numBlocks
 
     #macroBlockAbsIDXs = []
-    searchWindow = 1
+    
     searchWindow = 1
 
     MB_PARAM = (searchWindow, numBlocksVert, numBlocksHorz, numBlocks, MB_SIZE, pixels, pixelV, pixelH)
@@ -422,7 +422,7 @@ def YOLO():
         prev = now
         now = datetime.now()
         print((now-prev).total_seconds(), " Seconds elapsed!")
-        
+        #pdb.set_trace()
         loopsArr.append(frame)
         if(SLOW_MODE):
             time.sleep(0.05)
@@ -644,7 +644,7 @@ def YOLO():
             frame_read = cv2.rectangle(frame_read, pt1, pt2, (0,0,0), -10)
             
             
-        if(frame > breakAt and ( CALC_MV_YOLO_CENTER_DRIFT or PRINT_FRAMERATE)):
+        if(frame > breakAt and ( CALC_MV_YOLO_CENTER_DRIFT or PRINT_FRAMERATE or PLOT_AND_COMPARE_CENTERS)):
             break
     
         
@@ -798,6 +798,8 @@ def YOLO():
     ##MV box copy/adjust
         ##Based on detection skip param
     
+        #pdb.set_trace()
+    
         SanityBuffer[(frame-1)%YOLO_DET_SKIP] = frameIndex
         #If boxes were redetected, copy them to mvboxes
         if(frame%YOLO_DET_SKIP==0 or MVBoxes is None):
@@ -806,11 +808,13 @@ def YOLO():
             MVBoxes =  AssocDetections(detections)
             
             if(not USE_MB_MOTION):
-            
+                #pdb.set_trace()
                 Mv_info = (good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
                 #pdb.set_trace()
             else:
                 ##MACROBLOCK MOTION WORK
+                #xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+                
                 xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
             
                 Mv_info = (xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
@@ -824,23 +828,27 @@ def YOLO():
         else:
             #UpdateMvBoxes(detections, newFramePoints, oldFramePoints, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ, DEBUG_OBJECTS, dbgFrame=None, mask = None):
             
-            if(DETECT_DELAY):
-                
-               
-                if(not USE_MB_MOTION):
+            if(not USE_MB_MOTION):
             
-                    Mv_info = (good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
-                #pdb.set_trace()
-                else:
-                    ##MACROBLOCK MOTION WORK
-                    xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
-                
-                    Mv_info = (xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
-                    ##
+                Mv_info = (good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
+            #pdb.set_trace()
+            else:
+                ##MACROBLOCK MOTION WORK
+                xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+            
+                Mv_info = (xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
+                ##
+        
+            
+            if(DETECT_DELAY):
                 
                 MVBuffer[(frame-1)%YOLO_DET_SKIP] = deepcopy(Mv_info)
             
-            MVBoxes, dbgFrame,addedToFrame = UpdateMvBoxes(MVBoxes, good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ, DEBUG_OBJECTS, image, mask)
+            else:
+            
+                MVBoxes, dbgFrame,addedToFrame = UpdateMvBoxes(MVBoxes, good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ, DEBUG_OBJECTS, image, mask)
+
+
         COLOR = (0,0,255)
         #pdb.set_trace()
         
@@ -1066,7 +1074,7 @@ def YOLO():
     if (PLOT_AND_COMPARE_CENTERS and DETECT_DELAY):
         del loopsArr[-1]
         
-        max = 500
+        max = breakAt +1
         
         loopsArr = loopsArr[0:(max-YOLO_DET_SKIP)]
         
