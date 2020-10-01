@@ -26,7 +26,7 @@ os.system('brian_activate.cmd')
 #pdb.set_trace()
 
 #openCV static info
-path = "./data/test.mp4"
+path = ".\\data\\test.mp4"
 #path = "./data/simpler_trim.mp4"
 #path = "./data/two_min_alps_traffic.mp4"
 
@@ -91,22 +91,37 @@ USE_OTB = True
 PLOT_AND_COMPARE_CENTERS = True
         
 if(USE_OTB):
+    OTB_GT_FIX_TIME = False
+    
     
     OTB_GT_FIX_TIME = True
     path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
     otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
     
+    #OTB_GT_FIX_TIME = False
+    
     #path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
-    #OTB_GT_FIX_TIME = False
+    
     
     #path = ".\data\OTB_data\stationary\Crossing\otb_crossing.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Crossing\groundtruth_rect.txt"
     
-    #OTB_GT_FIX_TIME = False
-    
     #path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Subway\groundtruth_rect.txt"
+    
+    #TODO fix for CSV
+    #path = ".\data\OTB_data\stationary\Crowds\otb_Crowds.avi"
+    #otb_gt_file = ".\data\OTB_data\stationary\Crowds\groundtruth_rect.txt"
+    
+    #path = ".\data\OTB_data\stationary\Dancer2\otb_Dancer2.avi"
+    #TODO fix for CSV
+    #otb_gt_file = ".\data\OTB_data\stationary\Crowds\groundtruth_rect.txt"
+    
+    #path = ".\data\OTB_data\stationary\Man\otb_Man.avi"
+    #TODO fix for CSV
+    #otb_gt_file = ".\data\OTB_data\stationary\Crowds\groundtruth_rect.txt"
+    
     
     
     OTB_DETECT_PEOPLE_ONLY = True
@@ -395,7 +410,7 @@ def YOLO():
     otblist = []
     
     #Run for x frames of video. This is for plot consistency in videos
-    breakAt = 100
+    breakAt = 500
     
     #Buffered display
     DisplayBuffer = [None]*YOLO_DET_SKIP
@@ -677,8 +692,13 @@ def YOLO():
             
             numDetections = len(AllMVBoxes[frame-1])
             
-            AverageDist = sum(FrameDistances)/numDetections
+            if(not numDetections==0):
+                AverageDist = sum(FrameDistances)/numDetections
+            else:
+                print("PLOT and compare centers logged number of detections as 0")
             #print(numDetections)
+            
+                AverageDist = -10
             
             #Add this frames distances to distance list
             FrameCumulativeDrift.append(AverageDist)
@@ -842,7 +862,11 @@ def YOLO():
     if (PLOT_AND_COMPARE_CENTERS and not DETECT_DELAY):
         del loopsArr[-1]
         
-        AvgTotalDist = sum(FrameCumulativeDrift)/len(loopsArr)
+        NewFrameCumulativeDrift = np.array(FrameCumulativeDrift)
+        
+        NewFrameCumulativeDrift = NewFrameCumulativeDrift[NewFrameCumulativeDrift !=-10]
+        
+        AvgTotalDist = np.sum(NewFrameCumulativeDrift)/len(loopsArr)
         
         plt.plot([0, loopsArr[-1]], [AvgTotalDist, AvgTotalDist], 'k-', color = 'r', linewidth=4)
         
@@ -853,7 +877,13 @@ def YOLO():
         plt.ylabel('Pixel Distance')
     #    plt.legend()
         plt.title("Average Per-Box Centroid Drift MVBox to YOLO Box Chart NO Delay")
-        plt.show()
+        
+        A1ResultsPath = "./A1Results/"
+        nameToSave= A1ResultsPath+ "AvCenterDrift" + "_yolo_of_" + str(YOLO_DET_SKIP) + path.split("\\")[-1] + ".png"
+        
+        
+        plt.savefig(nameToSave)
+#        plt.show()
         
     
     #plot framerate values
