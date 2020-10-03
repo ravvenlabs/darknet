@@ -12,6 +12,7 @@ def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_g
     
     (searchWindow, numBlocksVert, numBlocksHorz, numBlocks, MB_SIZE, pixels, pixelV, pixelH) = MB_PARAM
     
+    
     macroBlockListPrev.clear()
     macroBlockListPrev = macroBlockListCur.copy()
     macroBlockListCur.clear()
@@ -19,6 +20,7 @@ def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_g
     #macroBlockAbsIDXs.clear()
 ######################GETBLOCKS##########################################
     #for blockIdx in range(0, numBlocks):
+    #pdb.set_trace()
     for c in range(0,numBlocksHorz):
         x1 = c*MB_SIZE
         x2 = (c+1)*MB_SIZE 
@@ -45,10 +47,10 @@ def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_g
     if(len(macroBlockListPrev) == len(macroBlockListCur)):
         #Search an N by N window
         
-        
+        #pdb.set_trace()
         for curBlockIdx in range(0, len(macroBlockListCur)):
-            #print("Block: ", curBlockIdx)
-            
+        #if(True):    #print("Block: ", curBlockIdx)
+            #curBlockIdx = 260
             
             bestSAD = float('inf')
             xMotionVector[curBlockIdx]=0
@@ -111,13 +113,22 @@ def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_g
                     sliceMBPrev = frame_gray_prev[YL:YR, XL:XR]
                     
                     
-                    
-                    
+                    #pdb.set_trace()
+                            #selectedpxlMB = int(curBlock[l,k])
+                            #print()
+                            #selectedPixelCurFrame = int(frame_gray_prev[Y,X])
+                            #print()
+                            #
+                            #SAD = abs(selectedpxlMB - selectedPixelCurFrame) + SAD
+                    #SAD = abs(selectedpxlMB - selectedPixelCurFrame) + SAD
+                            
                     
                     
                     if(sliceMBPrev.shape == (16,16)):   
                         #print("16 by 16")
-                        SAD = np.sum(np.absolute(np.subtract(curBlock, sliceMBPrev)))
+                       # pdb.set_trace()
+                        SAD = np.sum(np.absolute(np.subtract(curBlock.astype(np.int16)  , sliceMBPrev.astype(np.int16)  )))
+                        #pdb.set_trace()
                         #print(SAD)
                     else:
                     
@@ -144,8 +155,9 @@ def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_g
                             #print(sliceMBPrev.shape)
                             #pdb.set_trace()
                         
-                        SAD = np.sum(np.absolute(np.subtract(curBlock, sliceMBPrev)))
-                        SAD =  float('inf')
+                        SAD = np.sum(np.absolute(np.subtract(curBlock.astype(np.int16)  , sliceMBPrev.astype(np.int16)  )))
+                        #SAD = np.sum(np.absolute(np.subtract(curBlock, sliceMBPrev)))
+                        #SAD =  float('inf')
                         
                         
                         #print(sliceMBPrev.shape)
@@ -197,6 +209,16 @@ def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_g
                             # SAD = abs(selectedpxlMB - selectedPixelCurFrame) + SAD
                             # #print(SAD)
                     
+                    #MV BUG CODE
+#                    frame_gray_store = frame_gray.copy()
+                    
+ #                   frame = cv2.rectangle(frame_gray, (XL,YL),  (XR,YR), (0,0,0), 2)
+  #                  frame = cv2.putText(frame, str(SAD), (150, 150), cv2.FONT_HERSHEY_PLAIN, 2,(0, 0, 0)) 
+   #                 cv2.imshow('Frame',frame)
+    #                if cv2.waitKey(25) & 0xFF == ord('q'): 
+     #                   break
+  
+      #              frame_gray = frame_gray_store.copy()
                     
                     
                     if (SAD < bestSAD):
@@ -204,7 +226,7 @@ def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_g
                         xMotionVector[curBlockIdx] = -i
                         yMotionVector[curBlockIdx] = -j
  
-
+            
     MB_LISTS = (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector)
     #pdb.set_trace()
     return (xMotionVector, yMotionVector, MB_LISTS)
@@ -273,6 +295,8 @@ def GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev):
                     
                     
                     
+                    
+                    
                     #For all pixels in window block
                     for k in range(0,MB_SIZE-1):
                         for l in range(0,MB_SIZE-1):
@@ -300,6 +324,17 @@ def GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev):
                             #
                             SAD = abs(selectedpxlMB - selectedPixelCurFrame) + SAD
                             #print(SAD)
+                    
+                    if(uLXCoord+i>0 and uLYCoord+j>0):
+                    
+                        frame_gray_store = frame_gray.copy()
+                        frame = cv2.rectangle(frame_gray, (uLXCoord+i,uLYCoord+j),  (uLXCoord+i+16,uLYCoord+j+16), (0,0,0), 2)
+                        frame = cv2.putText(frame, str(SAD), (150, 150), cv2.FONT_HERSHEY_PLAIN, 2,(0, 0, 0)) 
+                        cv2.imshow('Frame',frame)
+                        if cv2.waitKey(25) & 0xFF == ord('q'): 
+                            break
+                        frame_gray = frame_gray_store.copy()
+                    
                     
                     if (SAD < bestSAD):
                         bestSAD = SAD

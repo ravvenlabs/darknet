@@ -87,7 +87,7 @@ DETECT_DELAY=True
 
 
 #Using OTB will cuase the program to read in OTB data which is a CV benchmark set
-USE_OTB = True
+USE_OTB = False
 PLOT_AND_COMPARE_CENTERS = True
         
 if(USE_OTB):
@@ -431,7 +431,7 @@ def YOLO():
     
     #While the video is open
     while cap.isOpened():   
-#        pdb.set_trace()
+        pdb.set_trace()
         addedToFrame = False
         
         prev = now
@@ -562,7 +562,7 @@ def YOLO():
                 AllDetectionsDelayed.append(DetectionsEveryFrameBuffer[Delayed_index-1])
                 
                 #dotMask = cvDrawCenters(AllDetectionsDelayed, dotMask,COLOR)
-                dotMask = cvDrawCentersSublist(DetectionsEveryFrameBuffer[Delayed_index-1], dotMask,COLOR)
+            #dotMask = cvDrawCentersSublist(DetectionsEveryFrameBuffer[Delayed_index-1], dotMask,COLOR)
                 
                 #cvDrawCentersSublist
                 

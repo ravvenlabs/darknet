@@ -240,6 +240,15 @@ def DiagDist(x1,y1,x2,y2):
     
     return dist
     
+def XDist(x1,y1,x2,y2):
+    #return center point
+    
+    dx = x1-x2
+    # dy= y1-y2
+    # dist = math.sqrt( dx*dx+dy*dy )
+    
+    return dx
+    
 #This is for the drift calulations. It calulates the distances between each pair of boxes
 def CalcDistances(matches):
     
@@ -259,6 +268,10 @@ def CalcDistances(matches):
         name_yolo, detsProb_yolo, (x_yolo,y_yolo,w_yolo,h_yolo) = yoloBox
     
         dist = DiagDist(x_mv,y_mv, x_yolo,y_yolo)
+        #dist = XDist(x_mv,0, x_yolo,0)
+        
+        
+        
         
         distList.append(dist)
     
