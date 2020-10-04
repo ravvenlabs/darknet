@@ -7,6 +7,33 @@ from datetime import datetime
 from yolo_display_utils import *
 from mv_utils import *
 
+def SaveImage(img, filename):
+    cv2.imwrite(filename, img) 
+
+        
+
+def PlotQuiver(frameIn, MBLocationsPre, xMotionVector, yMotionVector, MB_PARAM):
+
+    (searchWindow, numBlocksVert, numBlocksHorz, numBlocks, MB_SIZE, pixels, pixelV, pixelH) = MB_PARAM
+
+    i = 0
+    for npMBSlice in MBLocationsPre:
+        
+        uLXCoord = npMBSlice[0]
+        uLYCoord = npMBSlice[1]
+            
+        xDiff = xMotionVector[i]
+        yDiff = yMotionVector[i]
+
+        frameIn = cv2.line(frameIn, (uLXCoord+int(MB_SIZE/2),uLYCoord+int(MB_SIZE/2)), (uLXCoord+int(MB_SIZE/2) + xDiff,uLYCoord+int(MB_SIZE/2) + yDiff), (255,0,0), 2)
+        i+=1
+
+
+    return frameIn
+
+
+
+
 def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev):
     (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector) = MB_LISTS
     
@@ -148,77 +175,9 @@ def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_g
                         
                         if(extendRight):
                             sliceMBPrev = np.pad(sliceMBPrev, [(0, 0), (MB_SIZE-xAdj, 0)], mode='edge')
-                        
-                        
-                        
-                        #if(not sliceMBPrev.shape == (16, 16)):
-                            #print(sliceMBPrev.shape)
-                            #pdb.set_trace()
-                        
+
                         SAD = np.sum(np.absolute(np.subtract(curBlock.astype(np.int16)  , sliceMBPrev.astype(np.int16)  )))
-                        #SAD = np.sum(np.absolute(np.subtract(curBlock, sliceMBPrev)))
-                        #SAD =  float('inf')
-                        
-                        
-                        #print(sliceMBPrev.shape)
-                        
-                        #if(not sliceMBPrevPadded.shape == (16,16)):   
-                        #sliceMBPrev = np. pad(sliceMBPrev, [(20,20),(20,20)], mode='constant', constant_values=(0,0))
-                        
-                        
-                        #cv2.imshow('Frame',sliceMBPrev)
-        
-                        #if cv2.waitKey(25) & 0xFF == ord('q'): 
-                        #    break
-                        
-                        #pdb.set_trace()
-                        
-                        #SAD =  float('inf')
-                        #pass
-                        #print(uLXCoord, uLYCoord)
-                    #pdb.set_trace()
-                    
-                    #if out of bounds adjust into bounds by clipping
-                    
-                    
-                    #For all pixels in window block
-                    # for k in range(0,MB_SIZE-1):
-                        # for l in range(0,MB_SIZE-1):
-                            # X = uLXCoord + k + i
-                            # Y = uLYCoord + l + j
-       
-                            # #adjustments
-                            # if(X>pixelH-1):
-                                # X = pixelH-1
-                            # elif(X<0):
-                                # X=0
-
-                            # #adjustments
-                            # if(Y>pixelV-1):
-                                # Y = pixelV-1
-                            # elif(Y<0):
-                                # Y=0
-
-
-                            # #pdb.set_trace()
-                            # selectedpxlMB = int(curBlock[l,k])
-                            # #print()
-                            # selectedPixelCurFrame = int(frame_gray_prev[Y,X])
-                            # #print()
-                            # #
-                            # SAD = abs(selectedpxlMB - selectedPixelCurFrame) + SAD
-                            # #print(SAD)
-                    
-                    #MV BUG CODE
-#                    frame_gray_store = frame_gray.copy()
-                    
- #                   frame = cv2.rectangle(frame_gray, (XL,YL),  (XR,YR), (0,0,0), 2)
-  #                  frame = cv2.putText(frame, str(SAD), (150, 150), cv2.FONT_HERSHEY_PLAIN, 2,(0, 0, 0)) 
-   #                 cv2.imshow('Frame',frame)
-    #                if cv2.waitKey(25) & 0xFF == ord('q'): 
-     #                   break
-  
-      #              frame_gray = frame_gray_store.copy()
+                       
                     
                     
                     if (SAD < bestSAD):
