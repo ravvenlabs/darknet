@@ -26,7 +26,7 @@ os.system('brian_activate.cmd')
 #pdb.set_trace()
 
 #openCV static info
-path = "./data/test.mp4"
+path = ".\\data\\test.mp4"
 #path = "./data/simpler_trim.mp4"
 #path = "./data/two_min_alps_traffic.mp4"
 
@@ -37,11 +37,20 @@ AllDetectionsDelayed = []
 
 AllMVBoxes = []
 AllMVBoxesDelayed = []
+ALLOTBDelayed = []
+
+AllMatchedBoxes_MV_YOLO = []
+AllMatchedBoxes_MV_YOLODelayed = []
+
+AllMatchedBoxes_YOLO_to_GT = []
+AllMatchedBoxes_MV_to_GT = []
+
+All_OTB_GT = []
 
 
-AllMatchedBoxes = []
-AllMatchedBoxesDelayed = []
-FrameCumulativeDrift = []
+FrameCumulativeDriftMVYOLO = []
+FrameCumulativeDriftYOLO = []
+FrameCumulativeDriftMV = []
 #USE OTB DATA
 #USE OTB DATA
 
@@ -72,7 +81,7 @@ if(USE_MB_MOTION):
 
     #macroBlockAbsIDXs = []
     
-    searchWindow = 1
+    searchWindow = 10
 
     MB_PARAM = (searchWindow, numBlocksVert, numBlocksHorz, numBlocks, MB_SIZE, pixels, pixelV, pixelH)
     MB_LISTS = (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector)
@@ -93,20 +102,33 @@ PLOT_AND_COMPARE_CENTERS = True
 if(USE_OTB):
     
     OTB_GT_FIX_TIME = True
+    
+    
+    
+    OTB_GT_FIX_TIME = True
     path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
     otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
+      
+    OTB_GT_FIX_TIME = False
     
     #path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
-    #OTB_GT_FIX_TIME = False
+    
     
     #path = ".\data\OTB_data\stationary\Crossing\otb_crossing.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Crossing\groundtruth_rect.txt"
     
-    #OTB_GT_FIX_TIME = False
-    
     #path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Subway\groundtruth_rect.txt"
+    
+    #TODO fix for CSV
+    #path = ".\data\OTB_data\stationary\Crowds\otb_Crowds.avi"
+    #otb_gt_file = ".\data\OTB_data\stationary\Crowds\groundtruth_rect.txt"
+    
+    #path = ".\data\OTB_data\stationary\Dancer2\otb_Dancer2.avi"
+    #TODO fix for CSV
+    #otb_gt_file = ".\data\OTB_data\stationary\Dancer2\groundtruth_rect.txt"
+    
     
     
     OTB_DETECT_PEOPLE_ONLY = True
@@ -395,9 +417,10 @@ def YOLO():
     otblist = []
     
     #Run for x frames of video. This is for plot consistency in videos
-    breakAt = 100
+    breakAt = 500
     
     #Buffered display
+    OTBBuffer = [None]*YOLO_DET_SKIP
     DisplayBuffer = [None]*YOLO_DET_SKIP
     DetectionsBuffer = [None]*YOLO_DET_SKIP
     DetectionsEveryFrameBuffer = [None]*YOLO_DET_SKIP
@@ -579,23 +602,61 @@ def YOLO():
         
         
             if(PLOT_AND_COMPARE_CENTERS and DETECT_DELAY):
+
+                ALLOTBDelayed.append(OTBBuffer[Delayed_index-1])
         
                 #Add this frames matched points to list
-                AllMatchedBoxesDelayed.append(MatchMVboxToYoloNew(AllMVBoxesDelayed[-1], AllDetectionsDelayed[-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
+                AllMatchedBoxes_MV_YOLODelayed.append(MatchMVboxToYoloNew(AllMVBoxesDelayed[-1], AllDetectionsDelayed[-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
                 
                 
-                FrameDistances, garbage = CalcDistances(AllMatchedBoxesDelayed[-1])
+                if(USE_OTB):
+                 
+                    #AllMatchedBoxes_YOLO_to_GT.append(MatchMVboxToYoloNew(otblist[frame-1], AllDetections[frame-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
+                    #pdb.set_trace()
+                    AllMatchedBoxes_YOLO_to_GT.append(MatchMVboxToYoloNew(ALLOTBDelayed[-1], AllDetectionsDelayed[-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
+                    
+                    #image = DrawMatchesDiffColors(tempMatchez,  AllDetections[frame-1], image)
+                    AllMatchedBoxes_MV_to_GT.append(MatchMVboxToYoloNew(ALLOTBDelayed[-1], AllMVBoxesDelayed[-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
+                
+                FrameDistancesMVYOLO, garbage = CalcDistances(AllMatchedBoxes_MV_YOLODelayed[-1])
                 
                 
-                numDetections = len(AllMVBoxesDelayed[-1])
+            
+                FrameDistancesMV, garbage = CalcDistances(AllMatchedBoxes_MV_to_GT[-1])
+            
+                FrameDistancesYOLO, garbage = CalcDistances(AllMatchedBoxes_YOLO_to_GT[-1])
                 
-                AverageDist = sum(FrameDistances)/numDetections
+                
+                
+                numDetectionsMV = len(AllMVBoxesDelayed[-1])
+                numDetectionsYOLO = len(AllDetectionsDelayed[-1])
+                
+                if(not numDetectionsMV==0):
+                    AverageDistMVYOLO = sum(FrameDistancesMVYOLO)/numDetectionsMV
+                    AverageDistMV = sum(FrameDistancesMV)/numDetectionsMV
+                else:
+                    print("PLOT and compare centers logged number of detections as 0")
                 #print(numDetections)
+                    AverageDistMVYOLO = -10
+                    AverageDistMV = -10
+                    
+                if(not numDetectionsYOLO==0):
+                    AverageDistYOLO = sum(FrameDistancesYOLO)/numDetectionsYOLO
+                    
+                else:
+                    print("PLOT and compare centers logged number of detections as 0")
+                #print(numDetections)
+                    AverageDistYOLO = -10
+                    
                 
                 #Add this frames distances to distance list
-                FrameCumulativeDrift.append(AverageDist)
+                FrameCumulativeDriftMVYOLO.append(AverageDistMVYOLO)
                 
-                #for matchList in AllMatchedBoxes:
+                FrameCumulativeDriftMV.append(AverageDistMV)
+                
+                FrameCumulativeDriftYOLO.append(AverageDistYOLO)
+                
+                #for matchList in AllMatchedBoxes_MV_YOLO:
                 #    DrawMatchesDiffColors(matchList, None, image,link_only=True)
         
         
@@ -811,8 +872,8 @@ def YOLO():
                 #pdb.set_trace()
             else:
                 ##MACROBLOCK MOTION WORK
-                xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
-                #xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+                #xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+                xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
             
             
                 Mv_info = (xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
@@ -832,7 +893,8 @@ def YOLO():
             #pdb.set_trace()
             else:
                 ##MACROBLOCK MOTION WORK
-                xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+                #xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+                xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
             
                 Mv_info = (xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
                 ##
@@ -892,15 +954,16 @@ def YOLO():
             
             numDetections = len(AllMVBoxes[frame-1])
             
-            AverageDist = sum(FrameDistances)/numDetections
+            if(not numDetections==0):
+                AverageDist = sum(FrameDistances)/numDetections
+            else:
+                print("PLOT and compare centers logged number of detections as 0")
             #print(numDetections)
+            
+                AverageDist = -10
             
             #Add this frames distances to distance list
             FrameCumulativeDrift.append(AverageDist)
-            
-            #for matchList in AllMatchedBoxes:
-            #    DrawMatchesDiffColors(matchList, None, image,link_only=True)
-                
         
         ##########################################
         ## OTB STUFF ##
@@ -910,6 +973,10 @@ def YOLO():
         if(USE_OTB):
             #Load in OTB data
             readIn = otb_file.readline()
+            
+    
+            readIn = readIn.replace(',',' ')
+    
             readIn = readIn.split()
             
             #Get params
@@ -931,7 +998,8 @@ def YOLO():
             #Make the detection item
             gt_box = ("", 0, (x_gt, y_gt, w_gt, h_gt))
             otblist.append(gt_box)
-
+            if(DETECT_DELAY):
+                OTBBuffer[(frame-1)%YOLO_DET_SKIP] = otblist.copy()
 #           MVBOX EVAL: This matches a ground truth box with the closest overlapping detection and returns a pair            
             matches= MatchMVboxToYoloNew(MVBoxes, otblist, MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y)
             
@@ -1059,41 +1127,40 @@ def YOLO():
         plt.show()
         
     #plot center drift values
-    if (PLOT_AND_COMPARE_CENTERS and not DETECT_DELAY):
-        del loopsArr[-1]
-        
-        AvgTotalDist = sum(FrameCumulativeDrift)/len(loopsArr)
-        
-        plt.plot([0, loopsArr[-1]], [AvgTotalDist, AvgTotalDist], 'k-', color = 'r', linewidth=4)
-        
-        plt.plot(loopsArr, FrameCumulativeDrift)
-        #plt.title('Average Pixel Distance From Matched Center Values')
-        
-        plt.xlabel('Current Frame')
-        plt.ylabel('Pixel Distance')
-    #    plt.legend()
-        plt.title("Average Per-Box Centroid Drift MVBox to YOLO Box Chart NO Delay")
-        plt.show()
+
         
     if (PLOT_AND_COMPARE_CENTERS and DETECT_DELAY):
         del loopsArr[-1]
         
-        max = breakAt +1
+        max = frame
         
         loopsArr = loopsArr[0:(max-YOLO_DET_SKIP)]
         
-        AvgTotalDist = sum(FrameCumulativeDrift)/len(loopsArr)
-        
-        plt.plot([0, loopsArr[-1]], [AvgTotalDist, AvgTotalDist], 'k-', color = 'r', linewidth=4)
-        
-        plt.plot(loopsArr, FrameCumulativeDrift)
-        #plt.title('Average Pixel Distance From Matched Center Values')
+                
+        if(USE_OTB):
+            NewFrameCumulativeDriftYOLO = np.array(FrameCumulativeDriftYOLO)
+            NewFrameCumulativeDriftYOLO = NewFrameCumulativeDriftYOLO[NewFrameCumulativeDriftYOLO !=-10]
+            AvgTotalDistYOLO = np.sum(NewFrameCumulativeDriftYOLO)/len(loopsArr)
+            plt.plot([0, loopsArr[-1]], [AvgTotalDistYOLO, AvgTotalDistYOLO], 'k-', color = 'g', linewidth=1)
+            plt.plot(loopsArr, FrameCumulativeDriftYOLO, 'k-', color = 'g', linewidth=1)
+            
+            
+            NewFrameCumulativeDriftMV = np.array(FrameCumulativeDriftMV)
+            NewFrameCumulativeDriftMV = NewFrameCumulativeDriftMV[NewFrameCumulativeDriftMV !=-10]
+            AvgTotalDistMV = np.sum(NewFrameCumulativeDriftMV)/len(loopsArr)
+            plt.plot([0, loopsArr[-1]], [AvgTotalDistMV, AvgTotalDistMV], 'k-', color = 'r', linewidth=1)
+            plt.plot(loopsArr, FrameCumulativeDriftMV, 'k-', color = 'r', linewidth=1)
         
         plt.xlabel('Current Frame')
         plt.ylabel('Pixel Distance')
     #    plt.legend()
         plt.title("Average Per-Box Centroid Drift MVBox to YOLO Box Chart N-frame Delayed")
-        plt.show()
+        A1ResultsPath = "./A1Results/"
+        nameToSave= A1ResultsPath+ "AvCenterDrift" + "_yolo_MB_LB" + str(YOLO_DET_SKIP) + path.split("\\")[-1] + ".png"
+        
+        
+        plt.savefig(nameToSave)
+#        plt.show()
     
     #plot framerate values
     if (PRINT_FRAMERATE):
