@@ -81,7 +81,7 @@ if(USE_MB_MOTION):
 
     #macroBlockAbsIDXs = []
     
-    searchWindow = 10
+    searchWindow = 1
 
     MB_PARAM = (searchWindow, numBlocksVert, numBlocksHorz, numBlocks, MB_SIZE, pixels, pixelV, pixelH)
     MB_LISTS = (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector)
@@ -102,7 +102,7 @@ PLOT_AND_COMPARE_CENTERS = True
 if(USE_OTB):
     OTB_GT_FIX_TIME = False
     
-    
+
     OTB_GT_FIX_TIME = True
     path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
     otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
@@ -112,6 +112,7 @@ if(USE_OTB):
     #path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
     
+
     
     #path = ".\data\OTB_data\stationary\Crossing\otb_crossing.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Crossing\groundtruth_rect.txt"
@@ -125,8 +126,9 @@ if(USE_OTB):
     
     #path = ".\data\OTB_data\stationary\Dancer2\otb_Dancer2.avi"
     #TODO fix for CSV
+
     #otb_gt_file = ".\data\OTB_data\stationary\Dancer2\groundtruth_rect.txt"
-    
+
     
     
     OTB_DETECT_PEOPLE_ONLY = True
@@ -905,6 +907,7 @@ def YOLO():
         
         
         
+
                 
         
         ##########################################
@@ -1133,13 +1136,15 @@ def YOLO():
     if (PLOT_AND_COMPARE_CENTERS and not DETECT_DELAY):
         del loopsArr[-1]
         
-                
+              
         #NewFrameCumulativeDriftMVYOLO = np.array(FrameCumulativeDriftMVYOLO)
         #NewFrameCumulativeDriftMVYOLO = NewFrameCumulativeDriftMVYOLO[NewFrameCumulativeDriftMVYOLO !=-10]
         #AvgTotalDistMVYOLO = np.sum(NewFrameCumulativeDriftMVYOLO)/len(loopsArr)
         #plt.plot([0, loopsArr[-1]], [AvgTotalDistMVYOLO, AvgTotalDistMVYOLO], 'k-', color = 'y', linewidth=4)
         #plt.plot(loopsArr, FrameCumulativeDriftMVYOLO)
         #plt.title('Average Pixel Distance From Matched Center Values')
+
+       
         
         if(USE_OTB):
             NewFrameCumulativeDriftYOLO = np.array(FrameCumulativeDriftYOLO)
@@ -1160,10 +1165,13 @@ def YOLO():
         plt.ylabel('Pixel Distance')
     #    plt.legend()
         plt.title("Average Per-Box Centroid Drift MVBox to YOLO Box Chart NO Delay")
+
         A1ResultsPath = "./A1Results/"
         nameToSave= A1ResultsPath+ "AvCenterDrift" + "_yolo_MB_" + str(YOLO_DET_SKIP) + path.split("\\")[-1] + ".png"
         plt.savefig(nameToSave)
         #plt.show()
+
+
         
 
         
@@ -1180,10 +1188,12 @@ def YOLO():
         
         plt.plot(loopsArr, frameRateArr, label='Framerate Values')
         plt.legend()
+
         
         
         
         #plt.savefig(nameToSave)
+
 #        plt.show()
     
     success_fptr.close()

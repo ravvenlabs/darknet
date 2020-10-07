@@ -109,6 +109,8 @@ if(USE_OTB):
       
     #OTB_GT_FIX_TIME = False
     
+    #OTB_GT_FIX_TIME = False
+    
     #path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
     
@@ -125,11 +127,13 @@ if(USE_OTB):
     
     #path = ".\data\OTB_data\stationary\Dancer2\otb_Dancer2.avi"
     #TODO fix for CSV
+
     #otb_gt_file = ".\data\OTB_data\stationary\Dancer2\groundtruth_rect.txt"
     
     #path = ".\data\OTB_data\stationary\Man\otb_Man.avi"
     #TODO fix for CSV
     #otb_gt_file = ".\data\OTB_data\stationary\Man\groundtruth_rect.txt"
+
     
     
     
@@ -690,6 +694,8 @@ def YOLO():
             image = cvDrawCenters(AllMVBoxes, image,COLOR)
         
 ###################################################################################################################
+
+
         #OTB SINGLE LINE GT LOAD
         if(USE_OTB):
             #Load in OTB data
@@ -911,6 +917,7 @@ def YOLO():
     if (PLOT_AND_COMPARE_CENTERS and not DETECT_DELAY):
         del loopsArr[-1]
         
+
         #NewFrameCumulativeDriftMVYOLO = np.array(FrameCumulativeDriftMVYOLO)
         #NewFrameCumulativeDriftMVYOLO = NewFrameCumulativeDriftMVYOLO[NewFrameCumulativeDriftMVYOLO !=-10]
         #AvgTotalDistMVYOLO = np.sum(NewFrameCumulativeDriftMVYOLO)/len(loopsArr)
@@ -931,6 +938,7 @@ def YOLO():
             AvgTotalDistMV = np.sum(NewFrameCumulativeDriftMV)/len(loopsArr)
             plt.plot([0, loopsArr[-1]], [AvgTotalDistMV, AvgTotalDistMV], 'k-', color = 'r', linewidth=1)
             plt.plot(loopsArr, FrameCumulativeDriftMV, 'k-', color = 'r', linewidth=1)
+
         
         
         

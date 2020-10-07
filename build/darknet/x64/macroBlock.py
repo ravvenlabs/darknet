@@ -293,6 +293,7 @@ def GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev):
                     #    if cv2.waitKey(25) & 0xFF == ord('q'): 
                     #        break
                     #    frame_gray = frame_gray_store.copy()
+
                     
                     
                     if (SAD < bestSAD):

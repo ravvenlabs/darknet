@@ -105,8 +105,10 @@ if(USE_OTB):
     OTB_GT_FIX_TIME = True
     path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
     otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
+
       
     #OTB_GT_FIX_TIME = False
+
     
     #path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
@@ -115,8 +117,8 @@ if(USE_OTB):
     #path = ".\data\OTB_data\stationary\Crossing\otb_crossing.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Crossing\groundtruth_rect.txt"
     
-    #path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
-    #otb_gt_file = ".\data\OTB_data\stationary\Subway\groundtruth_rect.txt"
+    path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
+    otb_gt_file = ".\data\OTB_data\stationary\Subway\groundtruth_rect.txt"
     
     #TODO fix for CSV
     #path = ".\data\OTB_data\stationary\Crowds\otb_Crowds.avi"
@@ -124,7 +126,9 @@ if(USE_OTB):
     
     #path = ".\data\OTB_data\stationary\Dancer2\otb_Dancer2.avi"
     #TODO fix for CSV
+
     #otb_gt_file = ".\data\OTB_data\stationary\Dancer2\groundtruth_rect.txt"
+
     
     
     
@@ -437,7 +441,9 @@ def YOLO():
     
     #While the video is open
     while cap.isOpened():   
+
         
+
         addedToFrame = False
         
         prev = now
@@ -600,7 +606,7 @@ def YOLO():
         
 
             if(PLOT_AND_COMPARE_CENTERS and DETECT_DELAY):
-
+                #pdb.set_trace()
                 ALLOTBDelayed.append(OTBBuffer[Delayed_index-1])
         
                 #Add this frames matched points to list
@@ -612,14 +618,15 @@ def YOLO():
                     #AllMatchedBoxes_YOLO_to_GT.append(MatchMVboxToYoloNew(otblist[frame-1], AllDetections[frame-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
                     #pdb.set_trace()
                     AllMatchedBoxes_YOLO_to_GT.append(MatchMVboxToYoloNew(ALLOTBDelayed[-1], AllDetectionsDelayed[-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
-                    
+                    #pdb.set_trace()
                     #image = DrawMatchesDiffColors(tempMatchez,  AllDetections[frame-1], image)
                     AllMatchedBoxes_MV_to_GT.append(MatchMVboxToYoloNew(ALLOTBDelayed[-1], AllMVBoxesDelayed[-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
                 
                 FrameDistancesMVYOLO, garbage = CalcDistances(AllMatchedBoxes_MV_YOLODelayed[-1])
                 
                 
-            
+
+                #pdb.set_trace()
                 FrameDistancesMV, garbage = CalcDistances(AllMatchedBoxes_MV_to_GT[-1])
             
                 FrameDistancesYOLO, garbage = CalcDistances(AllMatchedBoxes_YOLO_to_GT[-1])
@@ -634,6 +641,7 @@ def YOLO():
                     AverageDistMV = sum(FrameDistancesMV)/numDetectionsMV
                 else:
                     print("PLOT and compare centers logged number of detections as 0")
+
                 #print(numDetections)
                     AverageDistMVYOLO = -10
                     AverageDistMV = -10
@@ -1124,6 +1132,7 @@ def YOLO():
         plt.show()
         
 
+
         
     if (PLOT_AND_COMPARE_CENTERS and DETECT_DELAY):
         del loopsArr[-1]
@@ -1133,6 +1142,10 @@ def YOLO():
         
         
         loopsArr = loopsArr[0:(max-YOLO_DET_SKIP)]
+
+        
+                
+ 
         
         if(USE_OTB):
             NewFrameCumulativeDriftYOLO = np.array(FrameCumulativeDriftYOLO)
