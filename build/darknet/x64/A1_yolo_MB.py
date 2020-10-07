@@ -1003,11 +1003,16 @@ def YOLO():
             
             
             FrameDistancesMVYOLO, garbage = CalcDistances(AllMatchedBoxes_MV_YOLO[frame-1])
+
+            if(USE_OTB):
+                FrameDistancesMV, garbage = CalcDistances(AllMatchedBoxes_MV_to_GT[frame-1])
             
-            FrameDistancesMV, garbage = CalcDistances(AllMatchedBoxes_MV_to_GT[frame-1])
-            
-            FrameDistancesYOLO, garbage = CalcDistances(AllMatchedBoxes_YOLO_to_GT[frame-1])
-            
+                FrameDistancesYOLO, garbage = CalcDistances(AllMatchedBoxes_YOLO_to_GT[frame-1])
+            else:
+                FrameDistancesMV=[]
+                FrameDistancesYOLO=[]        
+
+        
             numDetectionsMV = len(AllMVBoxes[frame-1])
             numDetectionsYOLO = len(AllDetections[frame-1])
             
@@ -1195,10 +1200,10 @@ def YOLO():
         #plt.savefig(nameToSave)
 
 #        plt.show()
+    if(USE_OTB):
+        success_fptr.close()
     
-    success_fptr.close()
-    
-    prec_fptr.close()
+        prec_fptr.close()
 
     #release memory
     cap.release()

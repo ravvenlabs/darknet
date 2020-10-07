@@ -625,13 +625,13 @@ def YOLO():
                 FrameDistancesMVYOLO, garbage = CalcDistances(AllMatchedBoxes_MV_YOLODelayed[-1])
                 
                 
-
-                #pdb.set_trace()
-                FrameDistancesMV, garbage = CalcDistances(AllMatchedBoxes_MV_to_GT[-1])
-            
-                FrameDistancesYOLO, garbage = CalcDistances(AllMatchedBoxes_YOLO_to_GT[-1])
+                if(USE_OTB):
+                    FrameDistancesMV, garbage = CalcDistances(AllMatchedBoxes_MV_to_GT[-1])
                 
-                
+                    FrameDistancesYOLO, garbage = CalcDistances(AllMatchedBoxes_YOLO_to_GT[-1])
+                else:
+                    FrameDistancesMV=[]
+                    FrameDistancesYOLO=[]                        
                 
                 numDetectionsMV = len(AllMVBoxesDelayed[-1])
                 numDetectionsYOLO = len(AllDetectionsDelayed[-1])
@@ -1187,10 +1187,10 @@ def YOLO():
         plt.plot(loopsArr, frameRateArr, label='Framerate Values')
         plt.legend()
         plt.show()
+    if(USE_OTB):
+        success_fptr.close()
     
-    success_fptr.close()
-    
-    prec_fptr.close()
+        prec_fptr.close()
 
     #release memory
     cap.release()

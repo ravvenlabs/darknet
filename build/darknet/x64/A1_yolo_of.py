@@ -96,7 +96,7 @@ DETECT_DELAY=False
 
 
 #Using OTB will cuase the program to read in OTB data which is a CV benchmark set
-USE_OTB = True
+USE_OTB = False
 PLOT_AND_COMPARE_CENTERS = True
         
 if(USE_OTB):
@@ -424,7 +424,7 @@ def YOLO():
     otblist = []
     
     #Run for x frames of video. This is for plot consistency in videos
-    breakAt = 500
+    breakAt = 15
     
     #Buffered display
     DisplayBuffer = [None]*YOLO_DET_SKIP
@@ -785,9 +785,13 @@ def YOLO():
             
             FrameDistancesMVYOLO, garbage = CalcDistances(AllMatchedBoxes_MV_YOLO[frame-1])
             
-            FrameDistancesMV, garbage = CalcDistances(AllMatchedBoxes_MV_to_GT[frame-1])
+            if(USE_OTB):
+                FrameDistancesMV, garbage = CalcDistances(AllMatchedBoxes_MV_to_GT[frame-1])
             
-            FrameDistancesYOLO, garbage = CalcDistances(AllMatchedBoxes_YOLO_to_GT[frame-1])
+                FrameDistancesYOLO, garbage = CalcDistances(AllMatchedBoxes_YOLO_to_GT[frame-1])
+            else:
+                FrameDistancesMV=[]
+                FrameDistancesYOLO=[]
             
             numDetectionsMV = len(AllMVBoxes[frame-1])
             numDetectionsYOLO = len(AllDetections[frame-1])
@@ -967,9 +971,10 @@ def YOLO():
         plt.legend()
         plt.show()
     
-    success_fptr.close()
+    if(USE_OTB):
+        success_fptr.close()
     
-    prec_fptr.close()
+        prec_fptr.close()
 
     #release memory
     cap.release()
