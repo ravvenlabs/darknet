@@ -18,12 +18,8 @@ from copy import deepcopy
 
 from macroBlock import *
 
-#Generic anaconda activate
+from general_utils import *
 
-#Not working yet
-os.system('brian_activate.cmd')
-
-#
 
 #openCV static info
 path = ".\\data\\test.mp4"
@@ -31,13 +27,12 @@ path = ".\\data\\test.mp4"
 #path = "./data/two_min_alps_traffic.mp4"
 
 ####################################################################
-
+#Create Some lists that will store detections
 AllDetections = []
 AllDetectionsDelayed = []
 
 AllMVBoxes = []
 AllMVBoxesDelayed = []
-
 
 AllMatchedBoxes_MV_YOLO = []
 AllMatchedBoxes_MV_YOLODelayed = []
@@ -52,11 +47,11 @@ FrameCumulativeDriftMVYOLO = []
 FrameCumulativeDriftYOLO = []
 FrameCumulativeDriftMV = []
 #USE OTB DATA
-#USE OTB DATA
 
 
-
+#########################################
 ####MACROBLOCK CODE/PARAMS
+#########################################
 USE_MB_MOTION = False
 if(USE_MB_MOTION):
 
@@ -81,22 +76,17 @@ if(USE_MB_MOTION):
 
     #macroBlockAbsIDXs = []
     searchWindow = 10
-    searchWindow = 10
+
 
     MB_PARAM = (searchWindow, numBlocksVert, numBlocksHorz, numBlocks, MB_SIZE, pixels, pixelV, pixelH)
     MB_LISTS = (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector)
 
 #################
 
-
-#Use a buffer of delayed frames to do mv-yolo combination
-#DETECT_DELAY=False
-
 DETECT_DELAY=False
 
-
 #Using OTB will cuase the program to read in OTB data which is a CV benchmark set
-USE_OTB = False
+USE_OTB = True
 PLOT_AND_COMPARE_CENTERS = True
         
 if(USE_OTB):
@@ -134,9 +124,6 @@ if(USE_OTB):
     #TODO fix for CSV
     #otb_gt_file = ".\data\OTB_data\stationary\Man\groundtruth_rect.txt"
 
-    
-    
-    
     OTB_DETECT_PEOPLE_ONLY = True
 
     #WHEN USING! make sure the path is to an otb data folder as well
@@ -145,42 +132,34 @@ if(USE_OTB):
     SHOW_OTB_GT = False
     
     
+    ####################################################################
     #calulate and store metrics for precision and success plots
     CALC_OTB_METRICS_STORE = True
     OTB_OUT_PRECISION_SUFFIX = "otb_prec_plot.txt"
     OTB_OUT_SUCCESS_SUFFIX = "otb_succes_plot.txt"
     
-   
-    
     #0 to 100
     SUCCESS_THRESH = 0
     
     str_suc = str(SUCCESS_THRESH)
-    
-    
-    
-    
+
     #0 to 50
     PIXEL_DIST_THRESH = 0
     #PIXEL_DIST_THRESH = pix_dist_thing
     
     #Success is %of detections where IOU is over threshold from 0 to 100%
-    
     #precision is % of detections where centroid is within *threshold* number of pixels of gt
 
     OTB_FOLDER= ".\OTB_OUT\\"
 
     SUCCESS_FILE = OTB_FOLDER + str(SUCCESS_THRESH)+OTB_OUT_SUCCESS_SUFFIX
-    
     PIXEL_DIST_FILE = OTB_FOLDER + str(PIXEL_DIST_THRESH)+OTB_OUT_PRECISION_SUFFIX
     
     success_fptr = open(SUCCESS_FILE, "w")
-    
     prec_fptr = open(PIXEL_DIST_FILE, "w")
     
+    ####################################################################
     
-#    
-
 else:
     SHOW_OTB_GT = False
     OTB_GT_FIX_TIME = False
@@ -225,7 +204,6 @@ SLOW_MODE =False
 MV_YOLO_ASSOCIATION_BUFFER_X = 5
 MV_YOLO_ASSOCIATION_BUFFER_Y = 5
 
-
 #put circles on most recent O.F. point
 CV_CIRCLE_ON = False
 #put lines on for O.F.
@@ -239,9 +217,6 @@ drawYOLO = False
 
 #Draw motion-vector-propelled boxes
 Draw_MV_BOXES = True
-
-#Calulate the Centroid drift
-CALC_MV_YOLO_CENTER_DRIFT = False
 
 # params for ShiTomasi corner detection
 feature_params = dict( maxCorners = DetectionPoints,
@@ -282,9 +257,6 @@ metaPath = "./cfg/coco.data"
 #weightPath = "./weights/yolov2-tiny-voc.weights"
 #metaPath = "./cfg/voc.data"
 
-###########
-
-
 #####################################################################
 
 
@@ -295,17 +267,53 @@ netMain = None
 metaMain = None
 altNames = None
 
+
+
 #Main loop
 def YOLO():
 
-    global MB_LISTS, MB_PARAM
+    #init some variables for the loop
+    frame=0
+    frame_read= None
+    MVBoxes = None
+    dbgFrame = None
+    detections = None
+    maxx=0
+    maxy=0
+    NoneType=type(None)
     
+    cumulitiveDrift = 0
+    
+    driftArr = []
+    frameRateArr = []
+    loopsArr = []
+    
+    #otb gt list
+    otblist = []
+    
+    #Run for x frames of video. This is for plot consistency in videos
+    breakAt = 500
+    
+    #Buffered display
+    DisplayBuffer = [None]*YOLO_DET_SKIP
+    DetectionsBuffer = [None]*YOLO_DET_SKIP
+    DetectionsEveryFrameBuffer = [None]*YOLO_DET_SKIP
+    LastDetection = None
+    NextDet = None
+    
+    MVBuffer = [None]*YOLO_DET_SKIP
+    SanityBuffer = [None]*YOLO_DET_SKIP
 
+    origYolo = None
+    detection_delayed = None
+    mvbox_delayed = None
+    frame_gray=[]
+    addedToFrame = False
+
+
+    global MB_LISTS, MB_PARAM
     global metaMain, netMain, altNames
-    
-    
-    
-    
+
     if not os.path.exists(configPath):
         raise ValueError("Invalid config path `" +
                          os.path.abspath(configPath)+"`")
@@ -340,8 +348,6 @@ def YOLO():
                     pass
         except Exception:
             pass
-    #cap = cv2.VideoCapture(0)
-#    cap = cv2.VideoCapture("test.mp4")
     cap = cv2.VideoCapture(path)
     
     #Record factors to scale by
@@ -357,7 +363,6 @@ def YOLO():
     #cap.set(3, 1280)
     #cap.set(4, 720)
 
-    
     out = cv2.VideoWriter(
         "output.avi", cv2.VideoWriter_fourcc(*"MJPG"), 10.0,
         (darknet.network_width(netMain), darknet.network_height(netMain)))
@@ -366,16 +371,8 @@ def YOLO():
     # Create an image we reuse for each detect
     darknet_image = darknet.make_image(darknet.network_width(netMain),
                                     darknet.network_height(netMain),3)
-    
-    
-    #FRAME READ MAIN LOOP
-    #
-    #####################
-    
-    ###
-    #OpenCV get first frame
-    #
-    
+
+
     #get frame
     ret, frame_read = cap.read()
     if(USE_OTB):
@@ -384,16 +381,13 @@ def YOLO():
         
     #Get rid of the camera timer that messes up optical flow
     if(OTB_GT_FIX_TIME):
-    
         pt1 = (0,0)
         pt2 = (220,15)
         frame_read = cv2.rectangle(frame_read, pt1, pt2, (0,0,0), -10)
         
     #resize to darknet preference
-    frame_read = cv2.resize(frame_read, (darknet.network_width(netMain),
-                                    darknet.network_height(netMain)), interpolation=cv2.INTER_LINEAR)
+    frame_read = cv2.resize(frame_read, (darknet.network_width(netMain), darknet.network_height(netMain)), interpolation=cv2.INTER_LINEAR)
                                     
-    
     #Get the first frame in gray
     old_gray = cv2.cvtColor(frame_read, cv2.COLOR_BGR2GRAY)
     
@@ -404,64 +398,28 @@ def YOLO():
     mask = np.zeros_like(frame_read)
     dotMask = np.zeros_like(frame_read)
     
-    #init some variables for the loop
-    frame=0
-    frame_read= None
-    MVBoxes = None
-    dbgFrame = None
-    detections = None
-    maxx=0
-    maxy=0
-    NoneType=type(None)
-    
-    cumulitiveDrift = 0
-    
-    driftArr = []
-    frameRateArr = []
-    loopsArr = []
-    
-    #otb gt list
-    otblist = []
-    
-    #Run for x frames of video. This is for plot consistency in videos
-    breakAt = 15
-    
-    #Buffered display
-    DisplayBuffer = [None]*YOLO_DET_SKIP
-    DetectionsBuffer = [None]*YOLO_DET_SKIP
-    DetectionsEveryFrameBuffer = [None]*YOLO_DET_SKIP
-    LastDetection = None
-    NextDet = None
-    
-    MVBuffer = [None]*YOLO_DET_SKIP
-    SanityBuffer = [None]*YOLO_DET_SKIP
-
-    origYolo = None
-    detection_delayed = None
-    mvbox_delayed = None
-    frame_gray=[]
-    
     now = datetime.now()
     
+    ##########################   
+    ## FRAME READ MAIN LOOP ##
+    ##########################
+
     #While the video is open
     while cap.isOpened():   
 #        
-        addedToFrame = False
         
         prev = now
         now = datetime.now()
         print((now-prev).total_seconds(), " Seconds elapsed!")
+        prev_time = time.time()
         
         loopsArr.append(frame)
+        
         if(SLOW_MODE):
             time.sleep(0.05)
         
-        #values saved, do processing here
-        
         frameIndex=frame
         frame=frame+1
-        
-        
         
         #every 10 start with new mask
         if(frame%OF_DET_SKIP==0):
@@ -476,46 +434,34 @@ def YOLO():
             # Create a mask image for drawing purposes
             mask = np.zeros_like(old_frame)
         
-        
-        prev_time = time.time()
+        #Read the next frame
         ret, frame_read = cap.read()
-        
         
         #Video failed to return another frame
         if(not ret):
             break
         
-        
-        
-        
         #Get rid of the camera timer that messes up optical flow
         if(OTB_GT_FIX_TIME):
-        
             pt1 = (0,0)
             pt2 = (220,15)
             frame_read = cv2.rectangle(frame_read, pt1, pt2, (0,0,0), -10)
             
-            
-        if(frame > breakAt and ( CALC_MV_YOLO_CENTER_DRIFT or PRINT_FRAMERATE or PLOT_AND_COMPARE_CENTERS)):
+        if(frame > breakAt and (PRINT_FRAMERATE or PLOT_AND_COMPARE_CENTERS)):
             break
     
-        
         #resize the frame for darknet
-        frame_read = cv2.resize(frame_read, (darknet.network_width(netMain),
-                                    darknet.network_height(netMain)), interpolation=cv2.INTER_LINEAR)
+        frame_read = cv2.resize(frame_read, (darknet.network_width(netMain), darknet.network_height(netMain)), interpolation=cv2.INTER_LINEAR)
         frame_rgb = cv2.cvtColor(frame_read, cv2.COLOR_BGR2RGB)
         
         
         ###############################MVs#########################
-            ##optical flow code#
+        ##optical flow code#
         
-        #MB_FRAME
+        #Gray frame previous and current
         frame_gray_prev = frame_gray.copy()
-        
-        
-        
-        
         frame_gray = cv2.cvtColor(frame_read, cv2.COLOR_BGR2GRAY)
+        
         # calculate optical flow
         p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
         
@@ -524,7 +470,6 @@ def YOLO():
             # Select good points
             good_new = p1[st==1]
             good_old = p0[st==1]
-            
             
             #This loop draws open cv features
             for i,(new,old) in enumerate(zip(good_new, good_old)):
@@ -544,50 +489,27 @@ def YOLO():
         #################################################
         ##Darknet Detection#
         
-        frame_resized = cv2.resize(frame_rgb,
-                                   (darknet.network_width(netMain),
-                                    darknet.network_height(netMain)),
-                                   interpolation=cv2.INTER_LINEAR)
-
+        frame_resized = cv2.resize(frame_rgb, (darknet.network_width(netMain), darknet.network_height(netMain)), interpolation=cv2.INTER_LINEAR)
         darknet.copy_image_from_bytes(darknet_image,frame_resized.tobytes())
         
+        #This block will get detections every frame and draw if needed
         if(ALWAYS_REDRAW_Redetect or PLOT_AND_COMPARE_CENTERS):
-        
             detectionsEveryFrame = darknet.detect_image(netMain, metaMain, darknet_image, thresh=YOLO_DET_THRESH, hier_thresh=HI_THRESH, nms=NMS)
+            COLOR = COLOR_green
             if(USE_OTB):
                 if(OTB_DETECT_PEOPLE_ONLY):
-                    
-                    pop_tracker = 0
-                    
-                    det_len = len(detectionsEveryFrame)
-                    
-                    for detection in range(0, det_len):
-                        #if it isa not a person
-    #                    print(detectionsEveryFrame[0][0].decode())
-                        if(not detectionsEveryFrame[pop_tracker][0].decode() == 'person'):
-                            
-                            detectionsEveryFrame.pop(pop_tracker)
-                            pop_tracker-=1
-                        pop_tracker+=1
-                        
-            COLOR = (0,255,0)
-        
-            
-        
+                    detectionsEveryFrame = FindSpecific(detectionsEveryFrame, 'person')     
         
             if(drawYOLO and not PLOT_AND_COMPARE_CENTERS):
                 image = cvDrawBoxes(detectionsEveryFrame, image,COLOR)
             
             if(PLOT_AND_COMPARE_CENTERS):
-                
                 DetectionsEveryFrameBuffer[(frameIndex)%YOLO_DET_SKIP] = detectionsEveryFrame.copy()
                 #for el in detections:
                 AllDetections.append(detectionsEveryFrame.copy())
-
-                
                 image = cvDrawCenters(AllDetections, image,COLOR,5)
         
-        #
+        
         #If it is time to redetect with darknet
         if(frame%YOLO_DET_SKIP==0 or detections is None or frame ==1):
         
@@ -598,42 +520,13 @@ def YOLO():
             if(USE_OTB):
                 if(OTB_DETECT_PEOPLE_ONLY):
                     
-                    pop_tracker = 0
-                    
-                    det_len = len(detections)
-                    
-                    for detection in range(0, det_len):
-                        #if it isa not a person
-    #                    print(detections[0][0].decode())
-                        if(not detections[pop_tracker][0].decode() == 'person'):
-                            
-                            detections.pop(pop_tracker)
-                            pop_tracker-=1
-                        pop_tracker+=1
-                        
-                    #
-                    
-                    #print(detections)
-            
-         
-        COLOR = (0,255,0)
+                    detections = FindSpecific(detections, 'person')
+                 
+        COLOR = COLOR_green
         
         if(drawYOLO and not PLOT_AND_COMPARE_CENTERS):
-            
             image = cvDrawBoxes(detections, image,COLOR)
-        
-        #if(PLOT_AND_COMPARE_CENTERS):
-            
-            
-            #for el in detections:
-            #AllDetections.append(detections.copy())
 
-            
-            #image = cvDrawCenters(AllDetections, image,COLOR)
-        
-        
-        
-        
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
 ###################################################################################################################
@@ -641,14 +534,12 @@ def YOLO():
         ##Based on detection skip param
     
         SanityBuffer[(frame-1)%YOLO_DET_SKIP] = frameIndex
+        
         #If boxes were redetected, copy them to mvboxes
         if(frame%YOLO_DET_SKIP==0 or MVBoxes is None):
             
-            
             MVBoxes =  AssocDetections(detections)
-            
             if(not USE_MB_MOTION):
-            
                 Mv_info = (good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
                 #
             else:
@@ -656,56 +547,36 @@ def YOLO():
                 xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
             
                 Mv_info = (xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
-                ##
             
             
             MVBuffer[(frame-1)%YOLO_DET_SKIP] = deepcopy(Mv_info)
             
-            #sys.stdout.write("MVBoxes assigned\n")
-        #else, update them with motion vectors
         else:
-            #UpdateMvBoxes(detections, newFramePoints, oldFramePoints, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ, DEBUG_OBJECTS, dbgFrame=None, mask = None):
-            
-            
             MVBoxes, dbgFrame,addedToFrame = UpdateMvBoxes(MVBoxes, good_new, good_old, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ, DEBUG_OBJECTS, image, mask)
-        COLOR = (0,0,255)
-        #
-        
-
-        
+        COLOR = COLOR_red
         
         
         #Draw the mv boxes on screen in red
         if(Draw_MV_BOXES and not PLOT_AND_COMPARE_CENTERS):
             if(dbgFrame is None):
                 image = cvDrawBoxes(MVBoxes, image,COLOR)
-            
             else:
                 image = cvDrawBoxes(MVBoxes, dbgFrame,COLOR)
-        else:
-            pass
         
         if(PLOT_AND_COMPARE_CENTERS):
             #for el in MVBoxes:
             AllMVBoxes.append(MVBoxes.copy())
-         
-            
-            
             image = cvDrawCenters(AllMVBoxes, image,COLOR)
         
 ###################################################################################################################
-
 
         #OTB SINGLE LINE GT LOAD
         if(USE_OTB):
             #Load in OTB data
             readIn = otb_file.readline()
-            
-    
             readIn = readIn.replace(',',' ')
-    
             readIn = readIn.split()
-            #
+            
             #Get params
             x_gt = int(readIn[0])
             y_gt = int(readIn[1])
@@ -750,10 +621,8 @@ def YOLO():
             #Calulate IOU
                 #= IOU_CALC(matches)
                 
-                
             #Calculate centroid distance
             distanceList, garbage = CalcDistances(matches)
-            
             
             #Print the distance if it was recorded
             if(len(distanceList)>0):
@@ -764,30 +633,23 @@ def YOLO():
             success_fptr.write( '%d %f \n' % (frame, iou_value))
             prec_fptr.write(    '%d %f \n' % (frame, center_dist))
         
+        #If plot and compare centers, this is where the boxes are matched and distances are calulated
         if(PLOT_AND_COMPARE_CENTERS and not DETECT_DELAY):
         
             #Add this frames matched points to list
             AllMatchedBoxes_MV_YOLO.append(MatchMVboxToYoloNew(AllMVBoxes[frame-1], AllDetections[frame-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
-            
+        
+            #Match detections every frame to otb gt
             if(USE_OTB):
-                    #AllMatchedBoxes_MV_YOLO.append(MatchMVboxToYoloNew(AllMVBoxes[frame-1], AllDetections[frame-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
-            
-                #AllMatchedBoxes_YOLO_to_GT.append(MatchMVboxToYoloNew(otblist[frame-1], AllDetections[frame-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
                 AllMatchedBoxes_YOLO_to_GT.append(MatchMVboxToYoloNew(otblist, AllDetections[frame-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
                 
-                #image = DrawMatchesDiffColors(tempMatchez,  AllDetections[frame-1], image)
                 AllMatchedBoxes_MV_to_GT.append(MatchMVboxToYoloNew(otblist, AllMVBoxes[frame-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
-                
-                #AllMatchedBoxes_MV_to_GT.append(MatchMVboxToYoloNew(otblist, AllMVBoxes[frame-1], MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y))
-                #image = DrawMatchesDiffColors(match2,  AllDetections[frame-1], image)
-                #otblist
-            
             
             FrameDistancesMVYOLO, garbage = CalcDistances(AllMatchedBoxes_MV_YOLO[frame-1])
             
+            #Provide list of calulated distances
             if(USE_OTB):
                 FrameDistancesMV, garbage = CalcDistances(AllMatchedBoxes_MV_to_GT[frame-1])
-            
                 FrameDistancesYOLO, garbage = CalcDistances(AllMatchedBoxes_YOLO_to_GT[frame-1])
             else:
                 FrameDistancesMV=[]
@@ -796,44 +658,29 @@ def YOLO():
             numDetectionsMV = len(AllMVBoxes[frame-1])
             numDetectionsYOLO = len(AllDetections[frame-1])
             
-            
+            #If there were frames without detections, give it a -10
             if(not numDetectionsMV==0):
                 AverageDistMVYOLO = sum(FrameDistancesMVYOLO)/numDetectionsMV
                 AverageDistMV = sum(FrameDistancesMV)/numDetectionsMV
             else:
                 print("PLOT and compare centers logged number of detections as 0")
-            #print(numDetections)
+            
                 AverageDistMVYOLO = -10
                 AverageDistMV = -10
                 
             if(not numDetectionsYOLO==0):
-                AverageDistYOLO = sum(FrameDistancesYOLO)/numDetectionsYOLO
-                
+                AverageDistYOLO = sum(FrameDistancesYOLO)/numDetectionsYOLO                
             else:
                 print("PLOT and compare centers logged number of detections as 0")
-            #print(numDetections)
+
                 AverageDistYOLO = -10
-                
-            
+
             #Add this frames distances to distance list
             FrameCumulativeDriftMVYOLO.append(AverageDistMVYOLO)
-            
             FrameCumulativeDriftMV.append(AverageDistMV)
-            
             FrameCumulativeDriftYOLO.append(AverageDistYOLO)
             
-            
-            #for matchList in AllMatchedBoxes_MV_YOLO:
-            #    DrawMatchesDiffColors(matchList, None, image,link_only=True)
-                
-        
-        ##########################################
-        ## OTB STUFF ##
-        
-        
-        
-            #
-        
+
         if(SHOW_OTB_GT):
             COLOR = (255,32,64)
             
@@ -841,27 +688,7 @@ def YOLO():
             
         ##########################################
         otblist.clear()
-        
-    #Calculate center drift between detections and MVboxes
-        #
-        if (CALC_MV_YOLO_CENTER_DRIFT):
-            matches, image = MatchMVboxToYoloNew(detections,MVBoxes, MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y, image)
-            image = DrawMatchesDiffColors(matches, detections, image)
-        
-            #CALC_DISTANCES()
-            distances, totalError = CalcDistances(matches)
-            cumulitiveDrift +=totalError
-        
-        
-        ##########################################
-        
-        
-        #print data to cmd line
-        if(CALC_MV_YOLO_CENTER_DRIFT):
-            sys.stdout.write("Drift amount: %f     \r" % totalError )
-            sys.stdout.flush()            
-            driftArr.append(totalError)
-            
+
         if(PRINT_FRAMERATE):
         
             frameRateCur = (1/(time.time()-prev_time))
@@ -870,23 +697,13 @@ def YOLO():
             frameRateArr.append(frameRateCur)
         
         ################ BIG VIEW ##
-        #MAgnify it eyes
+        #Magnify it eyes
         #fin_Im = cv2.resize(image, (1280, 720), interpolation=cv2.INTER_LINEAR)
         #cv2.imshow('Frame', fin_Im)
         ################          ##
         
-        cv2.line(image, (int(image.shape[1]/2), 0),(int(image.shape[1]/2), image.shape[0]), (255, 0, 0), 1, 1)
-        cv2.line(image, (0, int(image.shape[0]/2)),(image.shape[1], int(image.shape[0]/2) ), (255, 0, 0), 1, 1)
-        
-        #cv2.line(image, (0, int(400)),(image.shape[0], int(400) ), (255, 0, 0), 1, 1)
-        #cv2.line(image, (0, int(200)),(image.shape[0], int(200) ), (0, 255, 0), 1, 1)
-        #cv2.line(image, (0, int(100)),(image.shape[0], int(100) ), (0, 0, 255), 1, 1)
-        
-        #print("Image is " ,image.shape[0] ," by " , image.shape[1])
-        
-        if(addedToFrame):   
-            #
-            pass
+        cv2.line(image, (int(image.shape[1]/2), 0),(int(image.shape[1]/2), image.shape[0]), COLOR_blue, 1, 1)
+        cv2.line(image, (0, int(image.shape[0]/2)),(image.shape[1], int(image.shape[0]/2) ), COLOR_blue, 1, 1)
         
         if(not DETECT_DELAY):
         
@@ -894,40 +711,13 @@ def YOLO():
             #cv2.waitKey(3)
             if(cv2.waitKey(3) & 0xFF == ord('q')):
                 break
-        
-            #Add unprocessed frame to array
-            #Add MV info to array
-        
-        
-##################################################################################################################################
-        
-        #Do map testing down here, possibly
-        
-        
-##################################################################################################################################        
+
         old_gray = frame_gray.copy()
         p0 = good_new.reshape(-1,1,2)
-        
-            
-        
-    #plot center drift values
-    if (CALC_MV_YOLO_CENTER_DRIFT):
-        del loopsArr[-1]
-        plt.plot(loopsArr, driftArr, label='Drift Calculation Values')
-    #    plt.legend()
-        plt.show()
-        
+    
     #plot center drift values
     if (PLOT_AND_COMPARE_CENTERS and not DETECT_DELAY):
         del loopsArr[-1]
-        
-
-        #NewFrameCumulativeDriftMVYOLO = np.array(FrameCumulativeDriftMVYOLO)
-        #NewFrameCumulativeDriftMVYOLO = NewFrameCumulativeDriftMVYOLO[NewFrameCumulativeDriftMVYOLO !=-10]
-        #AvgTotalDistMVYOLO = np.sum(NewFrameCumulativeDriftMVYOLO)/len(loopsArr)
-        #plt.plot([0, loopsArr[-1]], [AvgTotalDistMVYOLO, AvgTotalDistMVYOLO], 'k-', color = 'y', linewidth=4)
-        #plt.plot(loopsArr, FrameCumulativeDriftMVYOLO)
-        #plt.title('Average Pixel Distance From Matched Center Values')
         
         if(USE_OTB):
             NewFrameCumulativeDriftYOLO = np.array(FrameCumulativeDriftYOLO)
@@ -936,28 +726,19 @@ def YOLO():
             plt.plot([0, loopsArr[-1]], [AvgTotalDistYOLO, AvgTotalDistYOLO], 'k-', color = 'g', linewidth=1)
             plt.plot(loopsArr, FrameCumulativeDriftYOLO, 'k-', color = 'g', linewidth=1)
             
-            
             NewFrameCumulativeDriftMV = np.array(FrameCumulativeDriftMV)
             NewFrameCumulativeDriftMV = NewFrameCumulativeDriftMV[NewFrameCumulativeDriftMV !=-10]
             AvgTotalDistMV = np.sum(NewFrameCumulativeDriftMV)/len(loopsArr)
             plt.plot([0, loopsArr[-1]], [AvgTotalDistMV, AvgTotalDistMV], 'k-', color = 'r', linewidth=1)
             plt.plot(loopsArr, FrameCumulativeDriftMV, 'k-', color = 'r', linewidth=1)
 
-        
-        
-        
         plt.xlabel('Current Frame')
         plt.ylabel('Pixel Distance')
-    #    plt.legend()
         plt.title("Average Per-Box Centroid Drift MVBox to YOLO Box Chart NO Delay")
         
         A1ResultsPath = "./A1Results/"
         nameToSave= A1ResultsPath+ "AvCenterDrift" + "_yolo_of_" + str(YOLO_DET_SKIP) + path.split("\\")[-1] + ".png"
-        
-        
         plt.savefig(nameToSave)
-#        plt.show()
-        
     
     #plot framerate values
     if (PRINT_FRAMERATE):
@@ -965,8 +746,6 @@ def YOLO():
         if(len(loopsArr) != len(frameRateArr)):
             print("Adjust array lengths")
             del loopsArr[-1]
-        
-        
         plt.plot(loopsArr, frameRateArr, label='Framerate Values')
         plt.legend()
         plt.show()
