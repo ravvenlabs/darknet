@@ -105,13 +105,21 @@ def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_g
                     YL = uLYCoord + j
                     YR = YL + MB_SIZE
                     
-                    #Select MB from nextBlock
+                    XLOrig = uLXCoord + i
+                    XROrig = XL + MB_SIZE
+                    YLOrig = uLYCoord + j
+                    YROrig = YL + MB_SIZE
                     
+                    
+                    #Select MB from nextBlock
+                    #pdb.set_trace()
                     sliceAdjust = False
                     extendTop = False
                     extendRight = False
                     extendLeft = False
                     extendBot = False
+                    
+                    blockOutsideImage = False
                     
                     if(XR>pixelH-1):
                         XR = pixelH-1
@@ -131,61 +139,72 @@ def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_g
                         sliceAdjust = True
                         extendTop = True
                     
+                    if(XL>=pixelH-1):
+                        blockOutsideImage = True
+                    if(XR<=0):
+                        blockOutsideImage = True
+                    if(YL>=pixelV-1):
+                        blockOutsideImage = True
+                    if(YR<=0):
+                        blockOutsideImage = True
                     
-                    if(sliceAdjust):
-                        xAdj = XR-XL
-                        yAdj = YR - YL
-                        #if(xAdj==yAdj):
-                        #    print(xAdj,yAdj)
-                    
-                    
-                    sliceMBPrev = frame_gray_prev[YL:YR, XL:XR]
-                    
-                    
-                    #pdb.set_trace()
-                            #selectedpxlMB = int(curBlock[l,k])
-                            #print()
-                            #selectedPixelCurFrame = int(frame_gray_prev[Y,X])
-                            #print()
-                            #
-                            #SAD = abs(selectedpxlMB - selectedPixelCurFrame) + SAD
-                    #SAD = abs(selectedpxlMB - selectedPixelCurFrame) + SAD
-                            
+                    if(blockOutsideImage ==False):
                     
                     
-                    if(sliceMBPrev.shape == (16,16)):   
-                        #print("16 by 16")
-                       # pdb.set_trace()
-                        SAD = np.sum(np.absolute(np.subtract(curBlock.astype(np.int16)  , sliceMBPrev.astype(np.int16)  )))
+                        if(sliceAdjust):
+                            xAdj = XR-XL
+                            yAdj = YR - YL
+                            #if(xAdj==yAdj):
+                            #    print(xAdj,yAdj)
+                        
+                        
+                        sliceMBPrev = frame_gray_prev[YL:YR, XL:XR]
+                        
+                        
                         #pdb.set_trace()
-                        #print(SAD)
-                    else:
-                    
-                    
-                        #print(sliceMBPrev.shape)
-                    
-                   #     pdb.set_trace
-                    
-                        if(extendTop):
-                            sliceMBPrev = np.pad(sliceMBPrev, [(MB_SIZE-yAdj, 0), (0, 0)], mode='edge')
+                                #selectedpxlMB = int(curBlock[l,k])
+                                #print()
+                                #selectedPixelCurFrame = int(frame_gray_prev[Y,X])
+                                #print()
+                                #
+                                #SAD = abs(selectedpxlMB - selectedPixelCurFrame) + SAD
+                        #SAD = abs(selectedpxlMB - selectedPixelCurFrame) + SAD
+                                
                         
-                        if(extendBot):
-                            sliceMBPrev = np.pad(sliceMBPrev, [(0, MB_SIZE-yAdj), (0, 0)], mode='edge')
                         
-                        if(extendLeft):
-                            sliceMBPrev = np.pad(sliceMBPrev, [(0, 0), (0, MB_SIZE-xAdj)], mode='edge')
+                        if(sliceMBPrev.shape == (16,16)):   
+                            #print("16 by 16")
+                           # pdb.set_trace()
+                            SAD = np.sum(np.absolute(np.subtract(curBlock.astype(np.int16)  , sliceMBPrev.astype(np.int16)  )))
+                            #pdb.set_trace()
+                            #print(SAD)
+                        else:
                         
-                        if(extendRight):
-                            sliceMBPrev = np.pad(sliceMBPrev, [(0, 0), (MB_SIZE-xAdj, 0)], mode='edge')
+                        
+                            #print(sliceMBPrev.shape)
+                        
+                            #pdb.set_trace()
+                        
+                            if(extendTop):
+                                sliceMBPrev = np.pad(sliceMBPrev, [(MB_SIZE-yAdj, 0), (0, 0)], mode='edge')
+                            
+                            if(extendBot):
+                                sliceMBPrev = np.pad(sliceMBPrev, [(0, MB_SIZE-yAdj), (0, 0)], mode='edge')
+                            
+                            if(extendLeft):
+                                sliceMBPrev = np.pad(sliceMBPrev, [(0, 0), (0, MB_SIZE-xAdj)], mode='edge')
+                            
+                            if(extendRight):
+                                sliceMBPrev = np.pad(sliceMBPrev, [(0, 0), (MB_SIZE-xAdj, 0)], mode='edge')
 
-                        SAD = np.sum(np.absolute(np.subtract(curBlock.astype(np.int16)  , sliceMBPrev.astype(np.int16)  )))
-                       
-                    
-                    
-                    if (SAD < bestSAD):
-                        bestSAD = SAD
-                        xMotionVector[curBlockIdx] = -i
-                        yMotionVector[curBlockIdx] = -j
+                            SAD = np.sum(np.absolute(np.subtract(curBlock.astype(np.int16)  , sliceMBPrev.astype(np.int16)  )))
+                           
+                        
+                        
+                        if (SAD < bestSAD):
+                            bestSAD = SAD
+                            xMotionVector[curBlockIdx] = -i
+                            yMotionVector[curBlockIdx] = -j
  
             
     MB_LISTS = (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector)
@@ -194,6 +213,163 @@ def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_g
 
 ####
 
+# def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev):
+    # (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector) = MB_LISTS
+    
+    # (searchWindow, numBlocksVert, numBlocksHorz, numBlocks, MB_SIZE, pixels, pixelV, pixelH) = MB_PARAM
+    
+    
+    # macroBlockListPrev.clear()
+    # macroBlockListPrev = macroBlockListCur.copy()
+    # macroBlockListCur.clear()
+    # macroBlockAbsLocation.clear()
+    # #macroBlockAbsIDXs.clear()
+# ######################GETBLOCKS##########################################
+    # #for blockIdx in range(0, numBlocks):
+    # #pdb.set_trace()
+    # for c in range(0,numBlocksHorz):
+        # x1 = c*MB_SIZE
+        # x2 = (c+1)*MB_SIZE 
+        
+        # for r in range(0,numBlocksVert):
+            # y1 = r*MB_SIZE
+            # y2 = (r+1)*MB_SIZE
+            
+            # selectedBlock = frame_gray[y1:y2, x1:x2]        
+# #            print(selectedBlock.shape)
+            # macroBlockListCur.append(selectedBlock.copy())
+            # #cv2.imshow('Frame',selectedBlock)
+            # #if cv2.waitKey(25) & 0xFF == ord('q'): 
+            # #    break
+            # #make this a 1 time thing
+            # #macroBlockAbsIDXs.append((c,r))
+            # macroBlockAbsLocation.append((c*MB_SIZE,r*MB_SIZE))
+ 
+    # #npMacroBlockAbsLocation= np.array(macroBlockAbsLocation)
+    # macroBlockAbsLocationPre.clear()
+    # macroBlockAbsLocationPre = macroBlockAbsLocation.copy()
+    
+    # #Collect motion information
+    # if(len(macroBlockListPrev) == len(macroBlockListCur)):
+        # #Search an N by N window
+        
+        # #pdb.set_trace()
+        # for curBlockIdx in range(0, len(macroBlockListCur)):
+        # #if(True):    #print("Block: ", curBlockIdx)
+            # #curBlockIdx = 260
+            
+            # bestSAD = float('inf')
+            # xMotionVector[curBlockIdx]=0
+            # yMotionVector[curBlockIdx]=0
+            
+            
+            # uLXCoord, uLYCoord = macroBlockAbsLocation[curBlockIdx];
+
+            # curBlock = macroBlockListCur[curBlockIdx]
+
+            # #For all window blocks 
+            # for i in range(-searchWindow, searchWindow):
+                # for j in range(-searchWindow, searchWindow):
+            # #        pass
+                    # SAD = 0
+                    
+                    
+                    # #Select MB from curBlock
+                    # #k 0 to 16
+                    # #l 0 to 16
+                    # XL = uLXCoord + i
+                    # XR = XL + MB_SIZE
+                    # YL = uLYCoord + j
+                    # YR = YL + MB_SIZE
+                    
+                    # #Select MB from nextBlock
+                    
+                    # sliceAdjust = False
+                    # extendTop = False
+                    # extendRight = False
+                    # extendLeft = False
+                    # extendBot = False
+                    
+                    # if(XR>pixelH-1):
+                        # XR = pixelH-1
+                        # sliceAdjust = True
+                        # extendRight = True
+                    # if(XL<0):
+                        # XL=0
+                        # sliceAdjust = True
+                        # extendLeft = True
+                            # # #adjustments
+                    # if(YR>pixelV-1):
+                        # YR = pixelV-1
+                        # sliceAdjust = True
+                        # extendBot = True
+                    # if(YL<0):
+                        # YL=0
+                        # sliceAdjust = True
+                        # extendTop = True
+                    
+                    
+                    # if(sliceAdjust):
+                        # xAdj = XR-XL
+                        # yAdj = YR - YL
+                        # #if(xAdj==yAdj):
+                        # #    print(xAdj,yAdj)
+                    
+                    
+                    # sliceMBPrev = frame_gray_prev[YL:YR, XL:XR]
+                    
+                    
+                    # #pdb.set_trace()
+                            # #selectedpxlMB = int(curBlock[l,k])
+                            # #print()
+                            # #selectedPixelCurFrame = int(frame_gray_prev[Y,X])
+                            # #print()
+                            # #
+                            # #SAD = abs(selectedpxlMB - selectedPixelCurFrame) + SAD
+                    # #SAD = abs(selectedpxlMB - selectedPixelCurFrame) + SAD
+                            
+                    
+                    
+                    # if(sliceMBPrev.shape == (16,16)):   
+                        # #print("16 by 16")
+                       # # pdb.set_trace()
+                        # SAD = np.sum(np.absolute(np.subtract(curBlock.astype(np.int16)  , sliceMBPrev.astype(np.int16)  )))
+                        # #pdb.set_trace()
+                        # #print(SAD)
+                    # else:
+                    
+                    
+                        # #print(sliceMBPrev.shape)
+                    
+                   # #     pdb.set_trace
+                    
+                        # if(extendTop):
+                            # sliceMBPrev = np.pad(sliceMBPrev, [(MB_SIZE-yAdj, 0), (0, 0)], mode='edge')
+                        
+                        # if(extendBot):
+                            # sliceMBPrev = np.pad(sliceMBPrev, [(0, MB_SIZE-yAdj), (0, 0)], mode='edge')
+                        
+                        # if(extendLeft):
+                            # sliceMBPrev = np.pad(sliceMBPrev, [(0, 0), (0, MB_SIZE-xAdj)], mode='edge')
+                        
+                        # if(extendRight):
+                            # sliceMBPrev = np.pad(sliceMBPrev, [(0, 0), (MB_SIZE-xAdj, 0)], mode='edge')
+
+                        # SAD = np.sum(np.absolute(np.subtract(curBlock.astype(np.int16)  , sliceMBPrev.astype(np.int16)  )))
+                       
+                    
+                    
+                    # if (SAD < bestSAD):
+                        # bestSAD = SAD
+                        # xMotionVector[curBlockIdx] = -i
+                        # yMotionVector[curBlockIdx] = -j
+ 
+            
+    # MB_LISTS = (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector)
+    # #pdb.set_trace()
+    # return (xMotionVector, yMotionVector, MB_LISTS)
+
+# ####
 
 def GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev): #, macroBlockListPrev, macroBlockListCur,macroBlockAbsLocationPre, xMotionVector, yMotionVector):
     print("Macroblock motion vector call")

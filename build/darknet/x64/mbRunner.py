@@ -28,7 +28,7 @@ pixelH = 416
 pixelV = 416
 
 pixels=pixelH*pixelV
-MB_SIZE = 8
+MB_SIZE = 4
 
 numBlocks = int(pixels / (MB_SIZE*MB_SIZE))
 numBlocksHorz = int(pixelH/MB_SIZE)
@@ -44,8 +44,8 @@ xMotionVector = [None]* numBlocks
 yMotionVector = [None]*numBlocks
 
 #macroBlockAbsIDXs = []
+searchWindow = 4
 searchWindow = 10
-searchWindow = 7
 frame_gray_prev =None
 frame_gray = None
 
