@@ -60,6 +60,7 @@ if(USE_MB_MOTION):
     pixelV = 416
 
     pixels=pixelH*pixelV
+#    MB_SIZE = 16
     MB_SIZE = 16
 
     numBlocks = int(pixels / (MB_SIZE*MB_SIZE))
@@ -98,33 +99,33 @@ PLOT_AND_COMPARE_CENTERS = True
 #set up otb information
 if(USE_OTB):
     
-    OTB_GT_FIX_TIME = True
+    # OTB_GT_FIX_TIME = True
 
-    OTB_GT_FIX_TIME = True
-    path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
-    otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
+    # OTB_GT_FIX_TIME = True
+    # path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
+    # otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
       
-    OTB_GT_FIX_TIME = False
+    # OTB_GT_FIX_TIME = False
     
-    #path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
-    #otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
+    # path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
+    # otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
 
     
     
-    #path = ".\data\OTB_data\stationary\Crossing\otb_crossing.avi"
-    #otb_gt_file = ".\data\OTB_data\stationary\Crossing\groundtruth_rect.txt"
+    # #path = ".\data\OTB_data\stationary\Crossing\otb_crossing.avi"
+    # #otb_gt_file = ".\data\OTB_data\stationary\Crossing\groundtruth_rect.txt"
     
-    #path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
-    #otb_gt_file = ".\data\OTB_data\stationary\Subway\groundtruth_rect.txt"
+    # #path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
+    # #otb_gt_file = ".\data\OTB_data\stationary\Subway\groundtruth_rect.txt"
     
-    #TODO fix for CSV
-    path = ".\data\OTB_data\stationary\Crowds\otb_Crowds.avi"
-    otb_gt_file = ".\data\OTB_data\stationary\Crowds\groundtruth_rect.txt"
+    # #TODO fix for CSV
+    # #path = ".\data\OTB_data\stationary\Crowds\otb_Crowds.avi"
+    # #otb_gt_file = ".\data\OTB_data\stationary\Crowds\groundtruth_rect.txt"
     
-    #path = ".\data\OTB_data\stationary\Dancer2\otb_Dancer2.avi"
-    #TODO fix for CSV
+    # #path = ".\data\OTB_data\stationary\Dancer2\otb_Dancer2.avi"
+    # #TODO fix for CSV
 
-    #otb_gt_file = ".\data\OTB_data\stationary\Dancer2\groundtruth_rect.txt"
+    # #otb_gt_file = ".\data\OTB_data\stationary\Dancer2\groundtruth_rect.txt"
 
     
     
@@ -325,8 +326,11 @@ def YOLO():
     frame_gray=[]
     addedToFrame = False
 
+    SHOW_QUIVER = True
 
     global MB_LISTS, MB_PARAM
+    global MV_RECT_BUFFER_VERT
+    global MV_RECT_BUFFER_HORZ
     
     global metaMain, netMain, altNames
     
@@ -425,7 +429,7 @@ def YOLO():
     
     #While the video is open
     while cap.isOpened():   
-#        pdb.set_trace()
+        #pdb.set_trace()
 
         
         prev = now
@@ -447,6 +451,8 @@ def YOLO():
 
             Delayed_image = frame_to_store
             
+            #Delayed_image = DisplayBuffer[]
+            
             print(frameIndex)
             print(Delayed_index)
             #pdb.set_trace()
@@ -456,28 +462,69 @@ def YOLO():
                 print("Display Yolo 1")
                 detection_delayed = LastDetection.copy()
                 origYolo = LastDetection.copy()
+                mvbox_delayed = detection_delayed.copy()
 #                TODO
 #LOOP THRU AND APPLY ALL MOTION VECTORS to detection delayed
                 for mv_idx in range(0, YOLO_DET_SKIP):
-                    
+                    #pdb.set_trace()
                     mvs_delayed = MVBuffer[(Delayed_index+mv_idx)%YOLO_DET_SKIP]
                     
+                    # if(SHOW_QUIVER):
+                    # Delayed_image_temp = Delayed_image.copy()
+                        
                     #Optical flow motion
                     if(not USE_MB_MOTION):
-                    
-                        (good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
-                        mvbox_delayed, garbage, garbage  = UpdateMvBoxes(detection_delayed, good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
+                        
+                        (good_new_del, good_old_del, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ) = mvs_delayed
+                        mvbox_delayed, garbage, garbage  = UpdateMvBoxes(detection_delayed, good_new_del, good_old_del, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
+                        
+                        
+
                     
                     #MV motion
                     else:
                         
-                        (xMotionVector, yMotionVector,  MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
+                        #(xMotionVector, yMotionVector,  MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ) = mvs_delayed
 
-                        if(not isinstance(mvbox_delayed,NoneType) ):
-                            mvbox_delayed.clear()
-                        else:
-                            mvbox_delayed = []
-                        mvbox_delayed, MB_LISTS = UpdateMvBoxesMacroBlock(mvbox_delayed, MB_PARAM, MB_LISTS, detection_delayed, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
+                        
+                        #pdb.set_trace()
+                        #if(not isinstance(mvbox_delayed,NoneType) ):
+                        #    detection_delayed = mvbox_delayed.copy()
+                        #    mvbox_delayed.clear()
+                        #else:
+                        #    detection_delayed = mvbox_delayed.copy()
+                        #    mvbox_delayed = []
+                        
+                        
+                        MB_LISTS_del = mvs_delayed
+                        #pdb.set_trace()
+                        if( not SHOW_QUIVER):
+                            (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector) = MB_LISTS_del
+                            
+                            if(not xMotionVector[0]==None):
+                        
+                                Delayed_image_temp = Delayed_image.copy()
+                            
+                                (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector) = MB_LISTS_del
+                                
+                                Delayed_image_temp = PlotQuiver(Delayed_image_temp, macroBlockAbsLocationPre, xMotionVector, yMotionVector, MB_PARAM, COLOR_red)
+                                
+                                Delayed_image_temp = cvDrawBoxes(detection_delayed, Delayed_image_temp,COLOR_yellow)
+                                
+                                cv2.imshow('Frame', Delayed_image_temp)
+                                #cv2.waitKey(3)
+                                if(cv2.waitKey(3) & 0xFF == ord('q')):
+                                    break
+                         
+                         
+                         
+                        #pdb.set_trace()
+                        mvbox_delayed, MB_LISTS = UpdateMvBoxesMacroBlock([], MB_PARAM, MB_LISTS_del, mvbox_delayed, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
+                        
+                        if( not SHOW_QUIVER):
+                            if(not xMotionVector[0]==None):
+                                pass
+                        
 
                 print("Yolo to be shown at frame index # ", frameIndex)
 
@@ -489,16 +536,19 @@ def YOLO():
                 mvs_delayed = MVBuffer[Delayed_index-1]
                 
                 if(not USE_MB_MOTION):
-                    (good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
+                    (good_new_del, good_old_del, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ) = mvs_delayed
                     #print(frame)
-                    mvbox_delayed, garbage, garbage  = UpdateMvBoxes(mvbox_delayed, good_new_del, good_old_del, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
+                    mvbox_delayed, garbage, garbage  = UpdateMvBoxes(mvbox_delayed, good_new_del, good_old_del, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
                 else:
                         
-                    (xMotionVector, yMotionVector,  MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del) = mvs_delayed
+                    #(xMotionVector, yMotionVector,  MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ) = mvs_delayed
                     #pdb.set_trace()
                     tempMVboxDelayed = mvbox_delayed.copy()
                     mvbox_delayed.clear()
-                    mvbox_delayed, MB_LISTS = UpdateMvBoxesMacroBlock(mvbox_delayed, MB_PARAM, MB_LISTS, tempMVboxDelayed, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
+                    
+                    MB_LISTS_del = mvs_delayed
+                    
+                    mvbox_delayed, MB_LISTS = UpdateMvBoxesMacroBlock(mvbox_delayed, MB_PARAM, MB_LISTS_del, tempMVboxDelayed, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
        
            
                 if(CV_LINES_ON):
@@ -557,6 +607,10 @@ def YOLO():
                 else:
                     #add content to image
                     Delayed_image = cvDrawBoxes(mvbox_delayed, Delayed_image,COLOR)
+            
+            if(SHOW_QUIVER):
+                (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector) = MB_LISTS
+                Delayed_image = PlotQuiver(Delayed_image, macroBlockAbsLocationPre, xMotionVector, yMotionVector, MB_PARAM)
         
         
             if(PLOT_AND_COMPARE_CENTERS and DETECT_DELAY):
@@ -781,7 +835,7 @@ def YOLO():
                 xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
             
             
-                Mv_info = (xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
+                Mv_info = MB_LISTS # (xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
                 ##
             
             
@@ -801,7 +855,7 @@ def YOLO():
                 
                 xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
             
-                Mv_info = (xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
+                Mv_info = MB_LISTS #(xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
                 ##
         
             
@@ -1034,6 +1088,57 @@ def YOLO():
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
+
+    #print(str(sys.argv))
+    #pdb.set_trace()
+    
+    test_case = int(sys.argv[1])
+    
+    if(test_case==0):
+        OTB_GT_FIX_TIME = True
+        path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
+        otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
+    elif(test_case==1):
+    
+        OTB_GT_FIX_TIME = False
+        
+        path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
+        otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
+    elif(test_case==2):
+    
+        OTB_GT_FIX_TIME = False
+        
+        path = ".\data\OTB_data\stationary\Crossing\otb_crossing.avi"
+        otb_gt_file = ".\data\OTB_data\stationary\Crossing\groundtruth_rect.txt"
+    
+    elif(test_case==3):
+    
+        OTB_GT_FIX_TIME = False
+        
+        path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
+        otb_gt_file = ".\data\OTB_data\stationary\Subway\groundtruth_rect.txt"
+    
+    elif(test_case==4):
+    
+        #TODO fix for CSV
+        path = ".\data\OTB_data\stationary\Crowds\otb_Crowds.avi"
+        otb_gt_file = ".\data\OTB_data\stationary\Crowds\groundtruth_rect.txt"
+        
+        OTB_GT_FIX_TIME = False
+    
+    elif(test_case==5):
+
+        OTB_GT_FIX_TIME = False
+    
+        path = ".\data\OTB_data\stationary\Dancer2\otb_Dancer2.avi"
+        #TODO fix for CSV
+
+        otb_gt_file = ".\data\OTB_data\stationary\Dancer2\groundtruth_rect.txt"
+
+    
+
+
+
     FixVSPath()
     color = np.random.randint(0,255,(DetectionPoints,3))
     import dark_motion as darknet

@@ -12,10 +12,10 @@ def SaveImage(img, filename):
 
         
 
-def PlotQuiver(frameIn, MBLocationsPre, xMotionVector, yMotionVector, MB_PARAM):
+def PlotQuiver(frameIn, MBLocationsPre, xMotionVector, yMotionVector, MB_PARAM, color = (255,0,0)):
 
     (searchWindow, numBlocksVert, numBlocksHorz, numBlocks, MB_SIZE, pixels, pixelV, pixelH) = MB_PARAM
-
+ 
     i = 0
     for npMBSlice in MBLocationsPre:
         
@@ -25,11 +25,13 @@ def PlotQuiver(frameIn, MBLocationsPre, xMotionVector, yMotionVector, MB_PARAM):
         xDiff = xMotionVector[i]
         yDiff = yMotionVector[i]
 
-        frameIn = cv2.line(frameIn, (uLXCoord+int(MB_SIZE/2),uLYCoord+int(MB_SIZE/2)), (uLXCoord+int(MB_SIZE/2) + xDiff,uLYCoord+int(MB_SIZE/2) + yDiff), (255,0,0), 2)
+        frameIn = cv2.line(frameIn, (uLXCoord+int(MB_SIZE/2),uLYCoord+int(MB_SIZE/2)), (uLXCoord+int(MB_SIZE/2) + xDiff,uLYCoord+int(MB_SIZE/2) + yDiff), color, 2)
         i+=1
 
 
     return frameIn
+    
+
 
 
 
@@ -357,7 +359,7 @@ def UpdateMvBoxesMacroBlock(mv_boxes, MB_PARAM, MB_LISTS, detections, MV_YOLO_AS
                 
                 
                 if(rectOverlap(rect_YOLO, rect_MB, MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y)):
-                   
+                    #pdb.set_trace()
                     #if overlap apply motion vectors
                     #frame = cv2.rectangle(frame, pt1_MB, pt2_MB, (0,0,255), 1)
                     #mb_inbounds +=1
@@ -389,10 +391,100 @@ def UpdateMvBoxesMacroBlock(mv_boxes, MB_PARAM, MB_LISTS, detections, MV_YOLO_AS
             
                     
             mv_box_new = name_yolo, detsProb_yolo, (x_yolo+total_x_mv,y_yolo+total_y_mv,w_yolo,h_yolo)
-            
+            #yolo_det = name_yolo, detsProb_yolo, (x_yolo+total_x_mv,y_yolo+total_y_mv,w_yolo,h_yolo)
             mv_boxes.append(mv_box_new)
             
-    
+    else:
+        return detections, MB_LISTS
     MB_LISTS = (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector)
     return mv_boxes, MB_LISTS
 ###
+
+# ###MB update MVBOXES
+# def UpdateMvBoxesMacroBlock(mv_boxes, MB_PARAM, MB_LISTS, detections, MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y):
+    
+    # #global xMotionVector
+    # #global yMotionVector
+    # (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector) = MB_LISTS
+    # (searchWindow, numBlocksVert, numBlocksHorz, numBlocks, MB_SIZE, pixels, pixelV, pixelH) = MB_PARAM
+    
+    # #Frame update function
+    # #Only do stuff if we have 2 populated MB sets
+    # if(len(macroBlockListPrev) == len(macroBlockListCur)):
+           
+        # ###########APPLY MVS to boxes
+            
+        # for yolo_det in detections:
+            # #unpack detection
+            
+            # name_yolo, detsProb_yolo, (x_yolo,y_yolo,w_yolo,h_yolo) = yolo_det
+            # #pdb.set_trace()
+            # xmin_yolo, ymin_yolo, xmax_yolo, ymax_yolo = convertBack(
+                    # float(x_yolo), float(y_yolo), float(w_yolo), float(h_yolo))
+        
+            # #Yolo corners
+            # #get corner points and put in tuple
+            # pt1_yolo = (xmin_yolo, ymin_yolo)
+            # pt2_yolo = (xmax_yolo, ymax_yolo)
+
+            # rect_YOLO = (pt1_yolo,pt2_yolo)
+            
+            # total_x_mv=0
+            # total_y_mv=0
+            # contributingBoxesx=0
+            # contributingBoxesy=0
+            
+            
+            # #pdb.set_trace()
+            # for mb_idx in range(0, len(macroBlockAbsLocationPre)):
+                
+                # #Get mb absolute location
+                
+                # (MB_r, MB_c ) = macroBlockAbsLocationPre[mb_idx]
+                
+                # pt1_MB = (MB_r, MB_c )
+                # pt2_MB = (MB_r+MB_SIZE, MB_c+MB_SIZE)
+                
+                # rect_MB = (pt1_MB, pt2_MB)
+                
+                
+                # if(rectOverlap(rect_YOLO, rect_MB, MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y)):
+                   
+                    # #if overlap apply motion vectors
+                    # #frame = cv2.rectangle(frame, pt1_MB, pt2_MB, (0,0,255), 1)
+                    # #mb_inbounds +=1
+                
+                    # x_mv = xMotionVector[mb_idx]
+                    # y_mv = yMotionVector[mb_idx]
+
+                    # #if one is nonzero
+                    # if(not x_mv==0):
+                        # contributingBoxesx+=1
+                    # #if one is nonzero
+                    # if(not y_mv==0):
+                        # contributingBoxesy+=1
+
+                    # total_x_mv += x_mv
+                    # total_y_mv += y_mv
+
+            # if(not contributingBoxesx == 0):
+                # #pdb.set_trace()
+                # total_x_mv = total_x_mv/contributingBoxesx
+                
+            # if(not contributingBoxesy == 0):
+                # #pdb.set_trace()
+                # total_y_mv = total_y_mv/contributingBoxesy
+            
+            
+                
+                        
+            
+                    
+            # mv_box_new = name_yolo, detsProb_yolo, (x_yolo+total_x_mv,y_yolo+total_y_mv,w_yolo,h_yolo)
+            
+            # mv_boxes.append(mv_box_new)
+            
+    
+    # MB_LISTS = (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector)
+    # return mv_boxes, MB_LISTS
+# ###

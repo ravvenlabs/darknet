@@ -86,8 +86,8 @@ DETECT_DELAY=False
 
 
 #Using OTB will cuase the program to read in OTB data which is a CV benchmark set
-USE_OTB = True
-PLOT_AND_COMPARE_CENTERS = True
+USE_OTB = False
+PLOT_AND_COMPARE_CENTERS = False
         
 if(USE_OTB):
     OTB_GT_FIX_TIME = False
@@ -118,6 +118,29 @@ if(USE_OTB):
     #TODO fix for CSV
 
     #otb_gt_file = ".\data\OTB_data\stationary\Dancer2\groundtruth_rect.txt"
+
+    #path = ".\data\OTB_data\sway\CarScale_from_paper\CarScale_from_paper.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\CarScale_from_paper\groundtruth_rect.txt"
+      
+    #path = ".\data\OTB_data\sway\David3\David3.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\David3\groundtruth_rect.txt"
+    
+    #path = ".\data\OTB_data\sway\Human4\Human4.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Human4\groundtruth_rect.2.txt"
+    
+    #path = ".\data\OTB_data\sway\Human5\Human5.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Human5\groundtruth_rect.txt"
+    
+    #path = ".\data\OTB_data\sway\Jogging\Jogging.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Jogging\groundtruth_rect.1.txt"
+    
+    #path = ".\data\OTB_data\sway\Woman\Woman.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Woman\groundtruth_rect.txt"
+    
+    #path = ".\data\OTB_data\sway\Couple\Couple.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Couple\groundtruth_rect.txt"
+    
+    
 
     OTB_DETECT_PEOPLE_ONLY = True
 
@@ -208,7 +231,7 @@ CV_LINES_ON = False
 DetectionPoints = 250
 
 #draw yolo bboxes (every frame green)
-drawYOLO = False
+drawYOLO = True
 
 #Draw motion-vector-propelled boxes
 Draw_MV_BOXES = True

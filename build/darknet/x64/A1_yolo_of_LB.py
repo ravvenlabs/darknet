@@ -89,8 +89,8 @@ DETECT_DELAY=True
 
 
 #Using OTB will cuase the program to read in OTB data which is a CV benchmark set
-USE_OTB = True
-PLOT_AND_COMPARE_CENTERS = True
+USE_OTB = False
+PLOT_AND_COMPARE_CENTERS = False
         
 if(USE_OTB):
     OTB_GT_FIX_TIME = False
@@ -101,7 +101,7 @@ if(USE_OTB):
     otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
 
       
-    #OTB_GT_FIX_TIME = False
+    OTB_GT_FIX_TIME = False
 
     
     #path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
@@ -111,19 +111,40 @@ if(USE_OTB):
     #path = ".\data\OTB_data\stationary\Crossing\otb_crossing.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Crossing\groundtruth_rect.txt"
     
-    path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
-    otb_gt_file = ".\data\OTB_data\stationary\Subway\groundtruth_rect.txt"
+    #path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
+    #otb_gt_file = ".\data\OTB_data\stationary\Subway\groundtruth_rect.txt"
     
     #TODO fix for CSV
     #path = ".\data\OTB_data\stationary\Crowds\otb_Crowds.avi"
     #otb_gt_file = ".\data\OTB_data\stationary\Crowds\groundtruth_rect.txt"
     
-    #path = ".\data\OTB_data\stationary\Dancer2\otb_Dancer2.avi"
+    path = ".\data\OTB_data\stationary\Dancer2\otb_Dancer2.avi"
     #TODO fix for CSV
 
-    #otb_gt_file = ".\data\OTB_data\stationary\Dancer2\groundtruth_rect.txt"
+    otb_gt_file = ".\data\OTB_data\stationary\Dancer2\groundtruth_rect.txt"
 
+    #path = ".\data\OTB_data\sway\CarScale_from_paper\CarScale_from_paper.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\CarScale_from_paper\groundtruth_rect.txt"
+      
+    #path = ".\data\OTB_data\sway\David3\David3.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\David3\groundtruth_rect.txt"
     
+    #path = ".\data\OTB_data\sway\Human4\Human4.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Human4\groundtruth_rect.2.txt"
+    
+    #path = ".\data\OTB_data\sway\Human5\Human5.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Human5\groundtruth_rect.txt"
+    
+    #path = ".\data\OTB_data\sway\Jogging\Jogging.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Jogging\groundtruth_rect.1.txt"
+    
+    #path = ".\data\OTB_data\sway\Woman\Woman.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Woman\groundtruth_rect.txt"
+    
+    #path = ".\data\OTB_data\sway\Couple\Couple.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Couple\groundtruth_rect.txt"
+    
+        
     
     
     OTB_DETECT_PEOPLE_ONLY = True
@@ -189,8 +210,8 @@ PRINT_FRAMERATE = False
 DEBUG_OBJECTS = False
 
 #MV inside of rectangle buffer for outside of rectangle [units of pixels]
-MV_RECT_BUFFER_VERT = 0
-MV_RECT_BUFFER_HORZ = 0
+MV_RECT_BUFFER_VERT = 10
+MV_RECT_BUFFER_HORZ = 10
 
 #Yolo accuracy required to make a bbox
 YOLO_DET_THRESH = .35
@@ -215,7 +236,7 @@ MV_YOLO_ASSOCIATION_BUFFER_Y = 5
 #put circles on most recent O.F. point
 CV_CIRCLE_ON = False
 #put lines on for O.F.
-CV_LINES_ON = False
+CV_LINES_ON = True
 
 #more objects detected and tracked with O.F.
 DetectionPoints = 250
@@ -321,6 +342,8 @@ def YOLO():
     frame_gray=[]
     addedToFrame = False
     
+    
+
 
     global MB_LISTS, MB_PARAM
     global metaMain, netMain, altNames
@@ -415,10 +438,13 @@ def YOLO():
     dotMask = np.zeros_like(frame_read)
     
     now = datetime.now()
-    
+    frame_to_store=np.zeros_like(frame_read)
     #While the video is open
+    
+    
+    
     while cap.isOpened():   
-
+        pdb.set_trace()
         prev = now
         now = datetime.now()
         print((now-prev).total_seconds(), " Seconds elapsed!")
@@ -432,9 +458,12 @@ def YOLO():
         frameIndex=frame
         frame=frame+1
         
+        
         if(DETECT_DELAY and (frame)>YOLO_DET_SKIP):
             Delayed_index = (frameIndex)%YOLO_DET_SKIP
 
+            
+            #Delayed_image=f1.copy()
             Delayed_image = frame_to_store
             
             print(frameIndex)
@@ -467,7 +496,8 @@ def YOLO():
                         else:
                             mvbox_delayed = []
                         mvbox_delayed, MB_LISTS = UpdateMvBoxesMacroBlock(mvbox_delayed, MB_PARAM, MB_LISTS, detection_delayed, MV_RECT_BUFFER_VERT_del, MV_RECT_BUFFER_HORZ_del)
-
+                        detection_delayed = mvbox_delayed.copy()
+    
                 print("Yolo to be shown at frame index # ", frameIndex)
 
                 detection_delayed = mvbox_delayed.copy()

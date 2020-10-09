@@ -26,6 +26,8 @@ path = ".\\data\\test.mp4"
 #path = "./data/simpler_trim.mp4"
 #path = "./data/two_min_alps_traffic.mp4"
 
+#path = ".\\data\\aerial_Trim.mp4"
+
 ####################################################################
 #Create Some lists that will store detections
 AllDetections = []
@@ -87,7 +89,7 @@ DETECT_DELAY=False
 
 #Using OTB will cuase the program to read in OTB data which is a CV benchmark set
 USE_OTB = True
-PLOT_AND_COMPARE_CENTERS = True
+PLOT_AND_COMPARE_CENTERS = False
         
 if(USE_OTB):
     OTB_GT_FIX_TIME = False
@@ -96,6 +98,31 @@ if(USE_OTB):
     OTB_GT_FIX_TIME = True
     path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
     otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
+      
+    OTB_GT_FIX_TIME = False
+      
+    path = ".\data\OTB_data\sway\CarScale_from_paper\CarScale_from_paper.avi"
+    otb_gt_file = ".\data\OTB_data\sway\CarScale_from_paper\groundtruth_rect.txt"
+      
+    #path = ".\data\OTB_data\sway\David3\David3.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\David3\groundtruth_rect.txt"
+    
+    #path = ".\data\OTB_data\sway\Human4\Human4.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Human4\groundtruth_rect.2.txt"
+    
+    #path = ".\data\OTB_data\sway\Human5\Human5.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Human5\groundtruth_rect.txt"
+    
+    #path = ".\data\OTB_data\sway\Jogging\Jogging.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Jogging\groundtruth_rect.1.txt"
+    
+    #path = ".\data\OTB_data\sway\Woman\Woman.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Woman\groundtruth_rect.txt"
+    
+    #path = ".\data\OTB_data\sway\Couple\Couple.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\Couple\groundtruth_rect.txt"
+    
+    
       
     #OTB_GT_FIX_TIME = False
     
@@ -207,13 +234,13 @@ MV_YOLO_ASSOCIATION_BUFFER_Y = 5
 #put circles on most recent O.F. point
 CV_CIRCLE_ON = False
 #put lines on for O.F.
-CV_LINES_ON = False
+CV_LINES_ON = True
 
 #more objects detected and tracked with O.F.
 DetectionPoints = 250
 
 #draw yolo bboxes (every frame green)
-drawYOLO = False
+drawYOLO = True
 
 #Draw motion-vector-propelled boxes
 Draw_MV_BOXES = True
@@ -607,9 +634,9 @@ def YOLO():
             ## Now, with match to ground truth, do stuff
             
             if(not PLOT_AND_COMPARE_CENTERS):
-            
+                pass
                 #This will just show you the matches visually
-                image = DrawMatchesDiffColors(matches, detections, image)
+#                image = DrawMatchesDiffColors(matches, detections, image)
             
             #Default vals
             center_dist = -1

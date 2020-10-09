@@ -254,7 +254,7 @@ def CalcDistances(matches):
     
     
     distList = []
-    totalDriftAmount = 0
+    totalDriftAmount = -10
     
     for match in matches:
         #pdb.set_trace()
