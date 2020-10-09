@@ -101,8 +101,8 @@ if(USE_OTB):
       
     OTB_GT_FIX_TIME = False
       
-    path = ".\data\OTB_data\sway\CarScale_from_paper\CarScale_from_paper.avi"
-    otb_gt_file = ".\data\OTB_data\sway\CarScale_from_paper\groundtruth_rect.txt"
+    #path = ".\data\OTB_data\sway\CarScale_from_paper\CarScale_from_paper.avi"
+    #otb_gt_file = ".\data\OTB_data\sway\CarScale_from_paper\groundtruth_rect.txt"
       
     #path = ".\data\OTB_data\sway\David3\David3.avi"
     #otb_gt_file = ".\data\OTB_data\sway\David3\groundtruth_rect.txt"
