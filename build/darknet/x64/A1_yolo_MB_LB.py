@@ -60,8 +60,8 @@ if(USE_MB_MOTION):
     pixelV = 416
 
     pixels=pixelH*pixelV
-#    MB_SIZE = 16
     MB_SIZE = 16
+  #  MB_SIZE = 4
 
     numBlocks = int(pixels / (MB_SIZE*MB_SIZE))
     numBlocksHorz = int(pixelH/MB_SIZE)
@@ -90,7 +90,7 @@ if(USE_MB_MOTION):
 #DETECT_DELAY=False
 
 DETECT_DELAY=True
-
+STORE_DISPLAY = False
 
 #Using OTB will cuase the program to read in OTB data which is a CV benchmark set
 USE_OTB = True
@@ -105,10 +105,10 @@ if(USE_OTB):
     # path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
     # otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
       
-    # OTB_GT_FIX_TIME = False
+    OTB_GT_FIX_TIME = False
     
-    # path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
-    # otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
+    path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
+    otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
 
     
     
@@ -519,32 +519,33 @@ def YOLO():
                         
                         MB_LISTS_del = mvs_delayed
                         #pdb.set_trace()
-                        if( not SHOW_QUIVER):
-                            (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector) = MB_LISTS_del
+                        # if( not SHOW_QUIVER):
+                            # (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector) = MB_LISTS_del
                             
-                            if(not xMotionVector[0]==None):
+                            # if(not xMotionVector[0]==None):
                         
-                                Delayed_image_temp = Delayed_image.copy()
+                                # Delayed_image_temp = Delayed_image.copy()
                             
-                                (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector) = MB_LISTS_del
+                                # (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector) = MB_LISTS_del
                                 
-                                Delayed_image_temp = PlotQuiver(Delayed_image_temp, macroBlockAbsLocationPre, xMotionVector, yMotionVector, MB_PARAM, COLOR_red)
+                                # Delayed_image_temp = PlotQuiver(Delayed_image_temp, macroBlockAbsLocation, xMotionVector, yMotionVector, MB_PARAM, COLOR_red)
                                 
-                                Delayed_image_temp = cvDrawBoxes(detection_delayed, Delayed_image_temp,COLOR_yellow)
+                                # Delayed_image_temp = cvDrawBoxes(detection_delayed, Delayed_image_temp,COLOR_yellow)
                                 
-                                cv2.imshow('Frame', Delayed_image_temp)
-                                #cv2.waitKey(3)
-                                if(cv2.waitKey(3) & 0xFF == ord('q')):
-                                    break
+                                # cv2.imshow('Frame', Delayed_image_temp)
+                                # cv2.waitKey(3)
+                                # if(cv2.waitKey(3) & 0xFF == ord('q')):
+                                    # break
+                                # pdb.set_trace()
                          
-                         
-                         
-                        #pdb.set_trace()
+                        #if(len(MB_LISTS_del[0])==0): 
+                            #pdb.set_trace()
+                        
                         mvbox_delayed, MB_LISTS = UpdateMvBoxesMacroBlock([], MB_PARAM, MB_LISTS_del, mvbox_delayed, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
                         
-                        if( not SHOW_QUIVER):
-                            if(not xMotionVector[0]==None):
-                                pass
+                        # if( not SHOW_QUIVER):
+                            # if(not xMotionVector[0]==None):
+                                # pass
                         
 
                 print("Yolo to be shown at frame index # ", frameIndex)
@@ -697,6 +698,8 @@ def YOLO():
             #cv2.waitKey(3)
             if(cv2.waitKey(3) & 0xFF == ord('q')):
                 break
+            if(STORE_DISPLAY):
+                cv2.imwrite(("A1Results/"+str(frame)+"MB_LB.png"), Delayed_image)
         
 
         #every 10 start with new mask
@@ -854,12 +857,12 @@ def YOLO():
                 ##MACROBLOCK MOTION WORK
                 #xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
                 xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
-            
+                #pdb.set_trace()
             
                 Mv_info = MB_LISTS # (xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
                 ##
             
-            
+
             MVBuffer[(frame-1)%YOLO_DET_SKIP] = deepcopy(Mv_info)
             
             #sys.stdout.write("MVBoxes assigned\n")
@@ -873,16 +876,17 @@ def YOLO():
             #pdb.set_trace()
             else:
                 ##MACROBLOCK MOTION WORK
-                
-                xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+#                xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectors(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
             
+                xMotionVector, yMotionVector, MB_LISTS = GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_gray_prev)
+                #pdb.set_trace()
                 Mv_info = MB_LISTS #(xMotionVector, yMotionVector, MV_RECT_BUFFER_VERT, MV_RECT_BUFFER_HORZ)
                 ##
         
             
             if(DETECT_DELAY):
-                
-                MVBuffer[(frame-1)%YOLO_DET_SKIP] = deepcopy(Mv_info)
+
+                MVBuffer[(frame-1)%YOLO_DET_SKIP] = deepcopy(Mv_info) #CopyMB_LIST(Mv_info) #deepcopy(Mv_info)
             
             else:
                 if(not USE_MB_MOTION):
@@ -992,7 +996,7 @@ def YOLO():
             #Needs to be done
             #Calulate IOU
                 #= IOU_CALC(matches)
-                
+            #iou_value     
                 
             #Calculate centroid distance
             distanceList, garbage = CalcDistances(matches)
@@ -1033,7 +1037,7 @@ def YOLO():
         cv2.line(image, (0, int(image.shape[0]/2)),(image.shape[1], int(image.shape[0]/2) ), (255, 0, 0), 1, 1)
 
         if(not DETECT_DELAY):
-        
+            
             cv2.imshow('Frame', image)
             #cv2.waitKey(3)
             if(cv2.waitKey(3) & 0xFF == ord('q')):
@@ -1041,7 +1045,7 @@ def YOLO():
         
         elif(DETECT_DELAY):
             #Add unprocessed frame to array
-            frame_to_store = cv2.putText(frame_to_store, str(frameIndex), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 1,   (0,0,0), 2)
+            frame_to_store = cv2.putText(frame_to_store, str(frame), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 1,   (0,0,0), 2)
             DisplayBuffer[(frame-1)%YOLO_DET_SKIP] = frame_to_store.copy()
             
 
@@ -1112,49 +1116,49 @@ if __name__ == "__main__":
 
     #print(str(sys.argv))
     #pdb.set_trace()
-    
-    test_case = int(sys.argv[1])
-    
-    if(test_case==0):
-        OTB_GT_FIX_TIME = True
-        path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
-        otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
-    elif(test_case==1):
-    
-        OTB_GT_FIX_TIME = False
+    if(len(sys.argv)==2):
+        test_case = int(sys.argv[1])
         
-        path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
-        otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
-    elif(test_case==2):
-    
-        OTB_GT_FIX_TIME = False
+        if(test_case==0):
+            OTB_GT_FIX_TIME = True
+            path = ".\data\OTB_data\stationary\Walking2\otb_Walking2.avi"
+            otb_gt_file = ".\data\OTB_data\stationary\Walking2\groundtruth_rect.txt"
+        elif(test_case==1):
         
-        path = ".\data\OTB_data\stationary\Crossing\otb_crossing.avi"
-        otb_gt_file = ".\data\OTB_data\stationary\Crossing\groundtruth_rect.txt"
-    
-    elif(test_case==3):
-    
-        OTB_GT_FIX_TIME = False
+            OTB_GT_FIX_TIME = False
+            
+            path = ".\data\OTB_data\stationary\Walking\otb_Walking.avi"
+            otb_gt_file = ".\data\OTB_data\stationary\Walking\groundtruth_rect.txt"
+        elif(test_case==2):
         
-        path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
-        otb_gt_file = ".\data\OTB_data\stationary\Subway\groundtruth_rect.txt"
-    
-    elif(test_case==4):
-    
-        #TODO fix for CSV
-        path = ".\data\OTB_data\stationary\Crowds\otb_Crowds.avi"
-        otb_gt_file = ".\data\OTB_data\stationary\Crowds\groundtruth_rect.txt"
+            OTB_GT_FIX_TIME = False
+            
+            path = ".\data\OTB_data\stationary\Crossing\otb_crossing.avi"
+            otb_gt_file = ".\data\OTB_data\stationary\Crossing\groundtruth_rect.txt"
         
-        OTB_GT_FIX_TIME = False
-    
-    elif(test_case==5):
+        elif(test_case==3):
+        
+            OTB_GT_FIX_TIME = False
+            
+            path = ".\data\OTB_data\stationary\Subway\otb_Subway.avi"
+            otb_gt_file = ".\data\OTB_data\stationary\Subway\groundtruth_rect.txt"
+        
+        elif(test_case==4):
+        
+            #TODO fix for CSV
+            path = ".\data\OTB_data\stationary\Crowds\otb_Crowds.avi"
+            otb_gt_file = ".\data\OTB_data\stationary\Crowds\groundtruth_rect.txt"
+            
+            OTB_GT_FIX_TIME = False
+        
+        elif(test_case==5):
 
-        OTB_GT_FIX_TIME = False
-    
-        path = ".\data\OTB_data\stationary\Dancer2\otb_Dancer2.avi"
-        #TODO fix for CSV
+            OTB_GT_FIX_TIME = False
+        
+            path = ".\data\OTB_data\stationary\Dancer2\otb_Dancer2.avi"
+            #TODO fix for CSV
 
-        otb_gt_file = ".\data\OTB_data\stationary\Dancer2\groundtruth_rect.txt"
+            otb_gt_file = ".\data\OTB_data\stationary\Dancer2\groundtruth_rect.txt"
 
     
 

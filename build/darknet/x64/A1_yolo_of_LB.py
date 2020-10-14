@@ -444,7 +444,7 @@ def YOLO():
     
     
     while cap.isOpened():   
-        pdb.set_trace()
+        
         prev = now
         now = datetime.now()
         print((now-prev).total_seconds(), " Seconds elapsed!")
@@ -570,7 +570,7 @@ def YOLO():
         
 
             if(PLOT_AND_COMPARE_CENTERS and DETECT_DELAY):
-                #pdb.set_trace()
+                #
                 ALLOTBDelayed.append(OTBBuffer[Delayed_index-1])
         
                 #Add this frames matched points to list
@@ -629,6 +629,7 @@ def YOLO():
             #cv2.waitKey(3)
             if(cv2.waitKey(3) & 0xFF == ord('q')):
                 break
+            cv2.imwrite(("A1Results/of_res/"+str(frame)+"of_LB.png"), Delayed_image)
 
         #every 10 start with new mask
         if(frame%OF_DET_SKIP==0):
@@ -947,7 +948,7 @@ def YOLO():
                 break
         
         elif(DETECT_DELAY):
-            frame_to_store = cv2.putText(frame_to_store, str(frameIndex), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 1,   (0,0,0), 2)
+            frame_to_store = cv2.putText(frame_to_store, str(frame), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 1,   (0,0,0), 2)
         
             DisplayBuffer[(frame-1)%YOLO_DET_SKIP] = frame_to_store.copy()
 

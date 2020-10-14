@@ -6,6 +6,30 @@ import time
 from datetime import datetime
 from yolo_display_utils import *
 from mv_utils import *
+import copy
+
+def CopyMB_LIST(Mv_info):
+    (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector) = Mv_info
+    
+    macroBlockListPrevOut =copy.deepcopy(macroBlockListPrev)
+    macroBlockListCurOut = copy.deepcopy(macroBlockListCur)
+    
+    macroBlockAbsLocationPreOut = copy.deepcopy(macroBlockAbsLocationPre)
+    macroBlockAbsLocationOut = copy.deepcopy(macroBlockAbsLocation)
+    xMotionVectorOut = copy.deepcopy(xMotionVector)
+    yMotionVectorOut = copy.deepcopy(yMotionVector)
+    
+    #for x in macroBlockListPrev:
+    #    macroBlockListPrevOut.append(np.copy(x)) 
+    
+    #for x in macroBlockListCur:
+        #numpy copy element
+    #    macroBlockListCurOut.append(np.copy(x))
+    #pdb.set_trace()
+    
+    Mv_info = (macroBlockListPrevOut, macroBlockListCurOut, macroBlockAbsLocationPreOut, macroBlockAbsLocationOut, xMotionVectorOut, yMotionVectorOut)
+    
+    return Mv_info
 
 def SaveImage(img, filename):
     cv2.imwrite(filename, img) 
@@ -172,7 +196,7 @@ def GetMacroBlockMotionVectorsVectorized(MB_PARAM, MB_LISTS, frame_gray, frame_g
                                 
                         
                         
-                        if(sliceMBPrev.shape == (16,16)):   
+                        if(sliceMBPrev.shape == (MB_SIZE,MB_SIZE)):   
                             #print("16 by 16")
                            # pdb.set_trace()
                             SAD = np.sum(np.absolute(np.subtract(curBlock.astype(np.int16)  , sliceMBPrev.astype(np.int16)  )))
@@ -496,40 +520,48 @@ def UpdateMvBoxesMacroBlock(mv_boxes, MB_PARAM, MB_LISTS, detections, MV_YOLO_AS
     
     #Frame update function
     #Only do stuff if we have 2 populated MB sets
-    if(len(macroBlockListPrev) == len(macroBlockListCur)):
            
-        ###########APPLY MVS to boxes
-            
-        for yolo_det in detections:
-            #unpack detection
-            
-            name_yolo, detsProb_yolo, (x_yolo,y_yolo,w_yolo,h_yolo) = yolo_det
-            #pdb.set_trace()
-            xmin_yolo, ymin_yolo, xmax_yolo, ymax_yolo = convertBack(
-                    float(x_yolo), float(y_yolo), float(w_yolo), float(h_yolo))
+    ###########APPLY MVS to boxes
         
-            #Yolo corners
-            #get corner points and put in tuple
-            pt1_yolo = (xmin_yolo, ymin_yolo)
-            pt2_yolo = (xmax_yolo, ymax_yolo)
+    for yolo_det in detections:
+        #unpack detection
+        
+        name_yolo, detsProb_yolo, (x_yolo,y_yolo,w_yolo,h_yolo) = yolo_det
+        #pdb.set_trace()
+        xmin_yolo, ymin_yolo, xmax_yolo, ymax_yolo = convertBack(
+                float(x_yolo), float(y_yolo), float(w_yolo), float(h_yolo))
+    
+        #Yolo corners
+        #get corner points and put in tuple
+        pt1_yolo = (xmin_yolo, ymin_yolo)
+        pt2_yolo = (xmax_yolo, ymax_yolo)
 
-            rect_YOLO = (pt1_yolo,pt2_yolo)
-            
-            total_x_mv=0
-            total_y_mv=0
-            contributingBoxesx=0
-            contributingBoxesy=0
-            
-            
-            #pdb.set_trace()
-            for mb_idx in range(0, len(macroBlockAbsLocationPre)):
-                
+        rect_YOLO = (pt1_yolo,pt2_yolo)
+        
+        total_x_mv=0
+        total_y_mv=0
+        contributingBoxesx=0
+        contributingBoxesy=0
+        
+        
+        #pdb.set_trace()
+        #for mb_idx in range(0, MB_SIZE*MB_SIZE):
+        
+        for c in range(0,numBlocksHorz):
+        
+        
+            for r in range(0,numBlocksVert):
+         
                 #Get mb absolute location
+                mb_idx = c*numBlocksVert+r
+
+                MB_x = c*MB_SIZE
+                MB_y = r*MB_SIZE
                 
-                (MB_r, MB_c ) = macroBlockAbsLocationPre[mb_idx]
-                
-                pt1_MB = (MB_r, MB_c )
-                pt2_MB = (MB_r+MB_SIZE, MB_c+MB_SIZE)
+                #(MB_r, MB_c ) = macroBlockAbsLocationPre[mb_idx]
+                #pdb.set_trace()
+                pt1_MB = (MB_x, MB_y )
+                pt2_MB = (MB_x+MB_SIZE, MB_y+MB_SIZE)
                 
                 rect_MB = (pt1_MB, pt2_MB)
                 
@@ -543,38 +575,138 @@ def UpdateMvBoxesMacroBlock(mv_boxes, MB_PARAM, MB_LISTS, detections, MV_YOLO_AS
                     x_mv = xMotionVector[mb_idx]
                     y_mv = yMotionVector[mb_idx]
 
-                    #if one is nonzero
-                    if(not x_mv==0):
-                        contributingBoxesx+=1
-                    #if one is nonzero
-                    if(not y_mv==0):
-                        contributingBoxesy+=1
+                    if(not x_mv==None):
 
-                    total_x_mv += x_mv
-                    total_y_mv += y_mv
+                        #if one is nonzero
+                        if(not x_mv==0):
+                            contributingBoxesx+=1
+                            total_x_mv += x_mv
+                    if(not y_mv==None):
 
-            if(not contributingBoxesx == 0):
-                #pdb.set_trace()
-                total_x_mv = total_x_mv/contributingBoxesx
+                        #if one is nonzero
+                        if(not y_mv==0):
+                            contributingBoxesy+=1
+                            total_y_mv += y_mv
+                    
                 
-            if(not contributingBoxesy == 0):
-                #pdb.set_trace()
-                total_y_mv = total_y_mv/contributingBoxesy
+
+        if(not contributingBoxesx == 0):
+            #pdb.set_trace()
+            total_x_mv = total_x_mv/contributingBoxesx
+        else:
+            total_x_mv = 0
+            
+        if(not contributingBoxesy == 0):
+            #pdb.set_trace()
+            total_y_mv = total_y_mv/contributingBoxesy
+        else:
+            total_y_mv = 0
+        
+        
+            
+                    
+        
+                
+        mv_box_new = name_yolo, detsProb_yolo, (x_yolo+total_x_mv,y_yolo+total_y_mv,w_yolo,h_yolo)
+        #yolo_det = name_yolo, detsProb_yolo, (x_yolo+total_x_mv,y_yolo+total_y_mv,w_yolo,h_yolo)
+        mv_boxes.append(mv_box_new)
+            
+    
+    MB_LISTS = (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector)
+    return mv_boxes, MB_LISTS
+###
+
+# ###MB update MVBOXES
+# def UpdateMvBoxesMacroBlock(mv_boxes, MB_PARAM, MB_LISTS, detections, MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y):
+    
+    # #global xMotionVector
+    # #global yMotionVector
+    # (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector) = MB_LISTS
+    # (searchWindow, numBlocksVert, numBlocksHorz, numBlocks, MB_SIZE, pixels, pixelV, pixelH) = MB_PARAM
+    
+    # #Frame update function
+    # #Only do stuff if we have 2 populated MB sets
+    # if(len(macroBlockListPrev) == len(macroBlockListCur)):
+           
+        # ###########APPLY MVS to boxes
+            
+        # for yolo_det in detections:
+            # #unpack detection
+            
+            # name_yolo, detsProb_yolo, (x_yolo,y_yolo,w_yolo,h_yolo) = yolo_det
+            # #pdb.set_trace()
+            # xmin_yolo, ymin_yolo, xmax_yolo, ymax_yolo = convertBack(
+                    # float(x_yolo), float(y_yolo), float(w_yolo), float(h_yolo))
+        
+            # #Yolo corners
+            # #get corner points and put in tuple
+            # pt1_yolo = (xmin_yolo, ymin_yolo)
+            # pt2_yolo = (xmax_yolo, ymax_yolo)
+
+            # rect_YOLO = (pt1_yolo,pt2_yolo)
+            
+            # total_x_mv=0
+            # total_y_mv=0
+            # contributingBoxesx=0
+            # contributingBoxesy=0
+            
+            
+            # #pdb.set_trace()
+            # for mb_idx in range(0, len(macroBlockAbsLocation)):
+                
+                # #Get mb absolute location
+                
+                # (MB_r, MB_c ) = macroBlockAbsLocationPre[mb_idx]
+                # pdb.set_trace()
+                # pt1_MB = (MB_r, MB_c )
+                # pt2_MB = (MB_r+MB_SIZE, MB_c+MB_SIZE)
+                
+                # rect_MB = (pt1_MB, pt2_MB)
+                
+                
+                # if(rectOverlap(rect_YOLO, rect_MB, MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y)):
+                    # #pdb.set_trace()
+                    # #if overlap apply motion vectors
+                    # #frame = cv2.rectangle(frame, pt1_MB, pt2_MB, (0,0,255), 1)
+                    # #mb_inbounds +=1
+                
+                    # x_mv = xMotionVector[mb_idx]
+                    # y_mv = yMotionVector[mb_idx]
+
+                    # #if one is nonzero
+                    # if(not x_mv==0):
+                        # contributingBoxesx+=1
+                    # #if one is nonzero
+                    # if(not y_mv==0):
+                        # contributingBoxesy+=1
+
+                    # total_x_mv += x_mv
+                    # total_y_mv += y_mv
+
+            # if(not contributingBoxesx == 0):
+                # #pdb.set_trace()
+                # total_x_mv = total_x_mv/contributingBoxesx
+                
+            # if(not contributingBoxesy == 0):
+                # #pdb.set_trace()
+                # total_y_mv = total_y_mv/contributingBoxesy
             
             
                 
                         
             
                     
-            mv_box_new = name_yolo, detsProb_yolo, (x_yolo+total_x_mv,y_yolo+total_y_mv,w_yolo,h_yolo)
-            #yolo_det = name_yolo, detsProb_yolo, (x_yolo+total_x_mv,y_yolo+total_y_mv,w_yolo,h_yolo)
-            mv_boxes.append(mv_box_new)
+            # mv_box_new = name_yolo, detsProb_yolo, (x_yolo+total_x_mv,y_yolo+total_y_mv,w_yolo,h_yolo)
+            # #yolo_det = name_yolo, detsProb_yolo, (x_yolo+total_x_mv,y_yolo+total_y_mv,w_yolo,h_yolo)
+            # mv_boxes.append(mv_box_new)
             
-    else:
-        return detections, MB_LISTS
-    MB_LISTS = (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector)
-    return mv_boxes, MB_LISTS
-###
+    # else:
+        # print("macroblock list prev does not have same count")
+        # return detections, MB_LISTS
+    # MB_LISTS = (macroBlockListPrev, macroBlockListCur, macroBlockAbsLocationPre, macroBlockAbsLocation, xMotionVector, yMotionVector)
+    # return mv_boxes, MB_LISTS
+# ###
+
 
 # ###MB update MVBOXES
 # def UpdateMvBoxesMacroBlock(mv_boxes, MB_PARAM, MB_LISTS, detections, MV_YOLO_ASSOCIATION_BUFFER_X, MV_YOLO_ASSOCIATION_BUFFER_Y):
